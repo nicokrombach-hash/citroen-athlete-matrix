@@ -169,9 +169,11 @@ function compressImage(file: File): Promise<string> {
 function CitroenLogo({ size = 28 }: { size?: number }) {
   return (
     <svg width={size} height={Math.round(size * 1.21)} viewBox="0 0 100 120" fill="none">
-      <ellipse cx="50" cy="60" rx="44" ry="54" stroke={RED} strokeWidth="5.5" />
-      <path d="M20 57L50 31L80 57" stroke={RED} strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M20 75L50 49L80 75" stroke={RED} strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" />
+      <ellipse cx="50" cy="60" rx="44" ry="52" stroke="#1a1a1a" strokeWidth="6" fill="none" />
+      {/* Upper filled chevron */}
+      <path d="M18,58 L50,28 L82,58 L73,58 L50,38 L27,58 Z" fill="#1a1a1a" />
+      {/* Lower filled chevron */}
+      <path d="M18,75 L50,45 L82,75 L73,75 L50,55 L27,75 Z" fill="#1a1a1a" />
     </svg>
   )
 }
@@ -187,9 +189,9 @@ function AthleteCard({ athlete, onClick }: { athlete: Athlete; onClick: () => vo
   return (
     <div
       onClick={onClick}
-      style={{ background: '#fff', border: '0.5px solid #e2e2e2', borderRadius: 10, overflow: 'hidden', cursor: 'pointer', transition: 'border-color 0.15s, box-shadow 0.15s' }}
-      onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = '#aaa'; (e.currentTarget as HTMLDivElement).style.boxShadow = '0 4px 16px rgba(0,0,0,0.08)' }}
-      onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = '#e2e2e2'; (e.currentTarget as HTMLDivElement).style.boxShadow = 'none' }}
+      style={{ background: '#fff', border: `1px solid ${RED}`, borderRadius: 10, overflow: 'hidden', cursor: 'pointer', transition: 'border-color 0.15s, box-shadow 0.15s' }}
+      onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = '#A81F14'; (e.currentTarget as HTMLDivElement).style.boxShadow = `0 4px 16px ${rgba(RED, 0.15)}` }}
+      onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = RED; (e.currentTarget as HTMLDivElement).style.boxShadow = 'none' }}
     >
       <div style={{ height: 3, background: info.color }} />
       <div style={{ padding: '14px 16px' }}>
