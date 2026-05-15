@@ -127,13 +127,13 @@ function compressImage(file: File): Promise<string> {
     reader.onload = e => {
       const img = new Image()
       img.onload = () => {
-        const SIZE = 800
+        const SIZE = 500
         const ratio = Math.min(SIZE / img.width, SIZE / img.height, 1)
         const canvas = document.createElement('canvas')
         canvas.width = Math.round(img.width * ratio)
         canvas.height = Math.round(img.height * ratio)
         canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height)
-        resolve(canvas.toDataURL('image/jpeg', 0.88))
+        resolve(canvas.toDataURL('image/jpeg', 0.70))
       }
       img.src = e.target!.result as string
     }
@@ -222,12 +222,10 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
   const updateScore = (key: string, val: number) => setForm(f => ({ ...f, scores: { ...f.scores, [key]: val } }))
   const updateField = (field: keyof Athlete, val: string) => setForm(f => ({ ...f, [field]: val }))
 
-  const handleImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]; if (!file) return
-    const b64 = await compressImage(file)
-    setForm(f => ({ ...f, image: b64, image_position: 50 }))
-    e.target.value = ''
-  }
+  const handleSave = async (data: Athlete) => {
+    try {
+      const { error } = await supabase.from('athletes').upsert(data)
+      if (!error) setAthletes(prev => {
 
   const handleSave = async () => {
     if (!form.name.trim()) { alert('Bitte Namen eingeben.'); return }
