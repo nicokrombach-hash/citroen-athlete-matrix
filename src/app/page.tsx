@@ -9,6 +9,7 @@ interface Athlete {
   name: string
   sport: string
   image: string | null
+  image_position: number
   cost: string
   reach_sm: string
   scores: Scores
@@ -24,21 +25,21 @@ const CATS: Record<string, { label: string; abbr: string; color: string }> = {
 }
 
 const CRIT = [
-  { key: 'brand_match',  label: 'Markenwerte-Match',         cat: 'hero',      w: 1.5, hint: 'Passt der Athlet zu Citroens Werten?' },
-  { key: 'recognition',  label: 'Wiedererkennungswert',      cat: 'hero',      w: 1.5, hint: 'Bekanntheit in D und international' },
-  { key: 'reach',        label: 'Strahlkraft Reichweite',    cat: 'hero',      w: 1.0, hint: 'Qualitative Strahlkraft' },
-  { key: 'medal_chance', label: 'Medaillenchance LA28',       cat: 'medal',     w: 2.0, hint: 'Wie realistisch ist eine Medaille?' },
-  { key: 'track_record', label: 'Int. Track Record',          cat: 'medal',     w: 1.5, hint: 'Internationale Erfolge' },
-  { key: 'consistency',  label: 'Wettkampf-Konstanz',         cat: 'medal',     w: 1.0, hint: 'Stabile Performance unter Druck' },
-  { key: 'story_depth',  label: 'Emotionale Story-Tiefe',     cat: 'inspiring', w: 1.5, hint: 'Tiefe der persoenlichen Geschichte' },
-  { key: 'resilience',   label: 'Comeback Resilience',        cat: 'inspiring', w: 1.5, hint: 'Ueberwindung von Rueckschlaegen' },
-  { key: 'authenticity', label: 'Authentizitaet',             cat: 'inspiring', w: 1.0, hint: 'Glaubwuerdigkeit der Story' },
-  { key: 'para_profile', label: 'Para-Profil Sichtbarkeit',   cat: 'para',      w: 1.5, hint: 'Bekanntheit im Para-Sport' },
-  { key: 'para_medals',  label: 'Medaillen-Potenzial Para',   cat: 'para',      w: 2.0, hint: 'Para-Medaillenchance' },
-  { key: 'inclusion',    label: 'Inklusions-Statement',        cat: 'para',      w: 1.0, hint: 'Kraft als Inklusionsbotschafter' },
-  { key: 'breakout',     label: 'Breakout-Potenzial',          cat: 'rising',    w: 1.5, hint: 'Potenzial zum naechsten grossen Namen' },
-  { key: 'youth_appeal', label: 'Junge Zielgruppe 16-30',      cat: 'rising',    w: 1.0, hint: 'Relevanz fuer junge Fans' },
-  { key: 'engagement',   label: 'Content-Qualitaet',           cat: 'rising',    w: 1.5, hint: 'Qualitaet des Social-Contents' },
+  { key: 'brand_match',  label: 'Markenwerte-Match',        cat: 'hero',      w: 1.5, hint: 'Passt der Athlet zu Citroens Werten?' },
+  { key: 'recognition',  label: 'Wiedererkennungswert',     cat: 'hero',      w: 1.5, hint: 'Bekanntheit in D und international' },
+  { key: 'reach',        label: 'Strahlkraft Reichweite',   cat: 'hero',      w: 1.0, hint: 'Qualitative Strahlkraft' },
+  { key: 'medal_chance', label: 'Medaillenchance LA28',      cat: 'medal',     w: 2.0, hint: 'Wie realistisch ist eine Medaille?' },
+  { key: 'track_record', label: 'Int. Track Record',         cat: 'medal',     w: 1.5, hint: 'Internationale Erfolge' },
+  { key: 'consistency',  label: 'Wettkampf-Konstanz',        cat: 'medal',     w: 1.0, hint: 'Stabile Performance unter Druck' },
+  { key: 'story_depth',  label: 'Emotionale Story-Tiefe',    cat: 'inspiring', w: 1.5, hint: 'Tiefe der persoenlichen Geschichte' },
+  { key: 'resilience',   label: 'Comeback Resilience',       cat: 'inspiring', w: 1.5, hint: 'Ueberwindung von Rueckschlaegen' },
+  { key: 'authenticity', label: 'Authentizitaet',            cat: 'inspiring', w: 1.0, hint: 'Glaubwuerdigkeit der Story' },
+  { key: 'para_profile', label: 'Para-Profil Sichtbarkeit',  cat: 'para',      w: 1.5, hint: 'Bekanntheit im Para-Sport' },
+  { key: 'para_medals',  label: 'Medaillen-Potenzial Para',  cat: 'para',      w: 2.0, hint: 'Para-Medaillenchance' },
+  { key: 'inclusion',    label: 'Inklusions-Statement',       cat: 'para',      w: 1.0, hint: 'Kraft als Inklusionsbotschafter' },
+  { key: 'breakout',     label: 'Breakout-Potenzial',         cat: 'rising',    w: 1.5, hint: 'Potenzial zum naechsten grossen Namen' },
+  { key: 'youth_appeal', label: 'Junge Zielgruppe 16-30',     cat: 'rising',    w: 1.0, hint: 'Relevanz fuer junge Fans' },
+  { key: 'engagement',   label: 'Content-Qualitaet',          cat: 'rising',    w: 1.5, hint: 'Qualitaet des Social-Contents' },
 ]
 
 const COMP = [
@@ -67,27 +68,20 @@ function rgba(hex: string, a: number) {
   const b = parseInt(hex.slice(5, 7), 16)
   return `rgba(${r},${g},${b},${a})`
 }
-
 function initials(name: string) {
   return (name || '?').split(' ').map((w: string) => w[0] || '').slice(0, 2).join('').toUpperCase()
 }
-
 function fmtCost(v: string) {
-  const n = Number(v)
-  if (!n) return '--'
+  const n = Number(v); if (!n) return '--'
   return 'EUR ' + n.toLocaleString('de-DE')
 }
-
 function fmtReach(v: string) {
-  const n = Number(v)
-  if (!n) return '--'
+  const n = Number(v); if (!n) return '--'
   if (n >= 100) return (n / 100).toFixed(n % 100 === 0 ? 0 : 1) + 'M'
   return n + '0k'
 }
-
 function computeReachScore(v: string): number {
-  const n = Number(v) || 0
-  if (n <= 0) return 1
+  const n = Number(v) || 0; if (n <= 0) return 1
   const t: [number, number][] = [[0,1],[5,3],[15,4],[50,6],[100,7],[250,8],[500,9],[1000,10]]
   for (let i = 1; i < t.length; i++) {
     if (n <= t[i][0]) {
@@ -97,10 +91,8 @@ function computeReachScore(v: string): number {
   }
   return 10
 }
-
 function computeCostScore(v: string): number {
-  const n = Number(v) || 0
-  if (n <= 0) return 5
+  const n = Number(v) || 0; if (n <= 0) return 5
   const t: [number, number][] = [[0,10],[25000,9],[75000,8],[150000,7],[250000,6],[400000,5],[600000,4],[1000000,2],[2000000,1]]
   for (let i = 1; i < t.length; i++) {
     if (n <= t[i][0]) {
@@ -110,21 +102,15 @@ function computeCostScore(v: string): number {
   }
   return 1
 }
-
 function getComputed(cost: string, reach_sm: string) {
-  return {
-    social_reach_calc: computeReachScore(reach_sm),
-    cost_eff_calc: computeCostScore(cost),
-  }
+  return { social_reach_calc: computeReachScore(reach_sm), cost_eff_calc: computeCostScore(cost) }
 }
-
 function catAvg(scores: Scores, cat: string, computed: Record<string, number>): number {
   let s = 0, w = 0
   for (const c of BY_CAT[cat]) { s += (scores[c.key] ?? 5) * c.w; w += c.w }
   for (const c of BY_COMP[cat]) { s += (computed[c.key] ?? 5) * c.w; w += c.w }
   return s / w
 }
-
 function autoAssign(scores: Scores, computed: Record<string, number>): string {
   let best = 'hero', bs = -1
   for (const k of Object.keys(CATS)) {
@@ -133,23 +119,26 @@ function autoAssign(scores: Scores, computed: Record<string, number>): string {
   }
   return best
 }
+function blankScores(): Scores { return Object.fromEntries(CRIT.map(c => [c.key, 5])) }
 
-function blankScores(): Scores {
-  return Object.fromEntries(CRIT.map(c => [c.key, 5]))
-}
-
-async function uploadImage(file: File, athleteId: number): Promise<string | null> {
-  try {
-    const ext = file.name.split('.').pop() || 'jpg'
-    const filename = `${athleteId}-${Date.now()}.${ext}`
-    const { error } = await supabase.storage.from('athlete-images').upload(filename, file, { upsert: true })
-    if (error) { console.error('Upload error:', error); return null }
-    const { data } = supabase.storage.from('athlete-images').getPublicUrl(filename)
-    return data.publicUrl
-  } catch (e) {
-    console.error(e)
-    return null
-  }
+function compressImage(file: File): Promise<string> {
+  return new Promise(resolve => {
+    const reader = new FileReader()
+    reader.onload = e => {
+      const img = new Image()
+      img.onload = () => {
+        const SIZE = 800
+        const ratio = Math.min(SIZE / img.width, SIZE / img.height, 1)
+        const canvas = document.createElement('canvas')
+        canvas.width = Math.round(img.width * ratio)
+        canvas.height = Math.round(img.height * ratio)
+        canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height)
+        resolve(canvas.toDataURL('image/jpeg', 0.88))
+      }
+      img.src = e.target!.result as string
+    }
+    reader.readAsDataURL(file)
+  })
 }
 
 function CitroenLogo({ size = 28 }: { size?: number }) {
@@ -168,6 +157,8 @@ function AthleteCard({ athlete, onClick }: { athlete: Athlete; onClick: () => vo
   const info = CATS[cat]
   const ini = initials(athlete.name)
   const hasMeta = athlete.cost || athlete.reach_sm
+  const pos = athlete.image_position ?? 50
+
   return (
     <div
       onClick={onClick}
@@ -176,9 +167,9 @@ function AthleteCard({ athlete, onClick }: { athlete: Athlete; onClick: () => vo
       onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.boxShadow = 'none' }}
     >
       <div style={{ height: 3, background: info.color }} />
-      <div style={{ width: '100%', height: 180, background: rgba(info.color, 0.06), display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
+      <div style={{ width: '100%', height: 200, background: rgba(info.color, 0.06), display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
         {athlete.image
-          ? <img src={athlete.image} alt={athlete.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          ? <img src={athlete.image} alt={athlete.name} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `center ${pos}%` }} />
           : <div style={{ width: 80, height: 80, borderRadius: '50%', background: rgba(info.color, 0.15), color: info.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 500 }}>{ini}</div>
         }
         <div style={{ position: 'absolute', top: 10, left: 10 }}>
@@ -190,13 +181,9 @@ function AthleteCard({ athlete, onClick }: { athlete: Athlete; onClick: () => vo
         <div style={{ fontSize: 11, color: '#888', marginBottom: hasMeta ? 8 : 10 }}>{athlete.sport}</div>
         {hasMeta && (
           <div style={{ display: 'flex', gap: 10, marginBottom: 10, padding: '6px 10px', background: '#f5f5f5', borderRadius: 6 }}>
-            <div style={{ fontSize: 11, color: '#666' }}>
-              <span style={{ fontWeight: 500, color: '#1a1a1a' }}>{fmtCost(athlete.cost)}</span>
-            </div>
+            <span style={{ fontSize: 11, fontWeight: 500, color: '#1a1a1a' }}>{fmtCost(athlete.cost)}</span>
             <div style={{ width: 1, background: '#e2e2e2', alignSelf: 'stretch' }} />
-            <div style={{ fontSize: 11, color: '#666' }}>
-              <span style={{ fontWeight: 500, color: '#1a1a1a' }}>{fmtReach(athlete.reach_sm)}</span>
-            </div>
+            <span style={{ fontSize: 11, fontWeight: 500, color: '#1a1a1a' }}>{fmtReach(athlete.reach_sm)}</span>
           </div>
         )}
         <div style={{ borderTop: '0.5px solid #e2e2e2', paddingTop: 10 }}>
@@ -220,39 +207,31 @@ function AthleteCard({ athlete, onClick }: { athlete: Athlete; onClick: () => vo
 }
 
 function EditView({ data, isNew, onSave, onDelete, onBack }: {
-  data: Athlete
-  isNew: boolean
+  data: Athlete; isNew: boolean
   onSave: (a: Athlete) => Promise<void>
-  onDelete: () => void
-  onBack: () => void
+  onDelete: () => void; onBack: () => void
 }) {
   const [form, setForm] = useState<Athlete>({ ...data, scores: { ...data.scores } })
   const [saving, setSaving] = useState(false)
-  const [uploading, setUploading] = useState(false)
   const computed = getComputed(form.cost, form.reach_sm)
   const cat = autoAssign(form.scores, computed)
   const info = CATS[cat]
   const ini = initials(form.name)
+  const pos = form.image_position ?? 50
 
   const updateScore = (key: string, val: number) => setForm(f => ({ ...f, scores: { ...f.scores, [key]: val } }))
   const updateField = (field: keyof Athlete, val: string) => setForm(f => ({ ...f, [field]: val }))
 
   const handleImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    setUploading(true)
-    const url = await uploadImage(file, form.id)
-    if (url) setForm(f => ({ ...f, image: url }))
-    else alert('Upload fehlgeschlagen.')
-    setUploading(false)
+    const file = e.target.files?.[0]; if (!file) return
+    const b64 = await compressImage(file)
+    setForm(f => ({ ...f, image: b64, image_position: 50 }))
     e.target.value = ''
   }
 
   const handleSave = async () => {
     if (!form.name.trim()) { alert('Bitte Namen eingeben.'); return }
-    setSaving(true)
-    await onSave(form)
-    setSaving(false)
+    setSaving(true); await onSave(form); setSaving(false)
   }
 
   return (
@@ -260,6 +239,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
       <button onClick={onBack} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: '#888', fontSize: 13, cursor: 'pointer', padding: 0, marginBottom: 16, fontFamily: 'inherit' }}>
         Zurueck zur Uebersicht
       </button>
+
       <div style={{ background: rgba(info.color, 0.08), border: `0.5px solid ${rgba(info.color, 0.3)}`, borderRadius: 8, padding: '10px 14px', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 10 }}>
         <div>
           <div style={{ fontSize: 10, color: '#888', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>Kategorie (auto):</div>
@@ -268,8 +248,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
         <div style={{ fontSize: 11, color: '#888', marginLeft: 8 }}>Score {catAvg(form.scores, cat, computed).toFixed(2)}</div>
         <div style={{ display: 'flex', gap: 5, alignItems: 'flex-end', marginLeft: 'auto' }}>
           {Object.entries(CATS).map(([k, c]) => {
-            const s = catAvg(form.scores, k, computed)
-            const isM = k === cat
+            const s = catAvg(form.scores, k, computed); const isM = k === cat
             return (
               <div key={k} title={`${c.label}: ${s.toFixed(2)}`} style={{ width: 22, display: 'flex', flexDirection: 'column-reverse', borderRadius: 3, overflow: 'hidden', height: 28, background: '#e2e2e2', border: `1px solid ${isM ? c.color : 'transparent'}` }}>
                 <div style={{ width: '100%', height: `${(s / 10 * 100).toFixed(0)}%`, background: isM ? c.color : '#c0c0c0', transition: 'height 0.2s' }} />
@@ -278,21 +257,35 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
           })}
         </div>
       </div>
+
       <div style={{ marginBottom: 20 }}>
-        <div style={{ width: '100%', height: 220, borderRadius: 10, overflow: 'hidden', background: rgba(info.color, 0.06), border: `1px solid ${rgba(info.color, 0.2)}`, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', marginBottom: 10 }}>
+        <div style={{ width: '100%', height: 240, borderRadius: 10, overflow: 'hidden', background: rgba(info.color, 0.06), border: `1px solid ${rgba(info.color, 0.2)}`, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', marginBottom: 10 }}>
           {form.image
-            ? <img src={form.image} alt={form.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ? <img src={form.image} alt={form.name} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `center ${pos}%` }} />
             : <div style={{ textAlign: 'center', color: '#bbb' }}>
                 <div style={{ fontSize: 48, marginBottom: 8 }}>&#128100;</div>
                 <div style={{ fontSize: 12 }}>Noch kein Foto</div>
               </div>
           }
-          {uploading && (
-            <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, color: '#888' }}>
-              Wird hochgeladen...
-            </div>
-          )}
         </div>
+
+        {form.image && (
+          <div style={{ marginBottom: 10, padding: '10px 14px', background: '#f5f5f5', borderRadius: 8, border: '0.5px solid #e2e2e2' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <label style={{ fontSize: 11, color: '#888' }}>Bildposition (oben bis unten)</label>
+              <span style={{ fontSize: 11, color: '#888' }}>{pos}%</span>
+            </div>
+            <input
+              type="range" min="0" max="100" step="1" value={pos}
+              onChange={e => setForm(f => ({ ...f, image_position: Number(e.target.value) }))}
+              style={{ width: '100%', accentColor: RED }}
+            />
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#bbb', marginTop: 2 }}>
+              <span>Oben</span><span>Unten</span>
+            </div>
+          </div>
+        )}
+
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: 7, border: '0.5px solid #ccc', padding: '7px 14px', borderRadius: 6, fontSize: 12, cursor: 'pointer', background: '#fff' }}>
             Foto hochladen
@@ -305,6 +298,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
           )}
         </div>
       </div>
+
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
         <div>
           <label style={{ display: 'block', fontSize: 11, color: '#888', marginBottom: 4 }}>Name *</label>
@@ -315,6 +309,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
           <input type="text" value={form.sport} onChange={e => updateField('sport', e.target.value)} placeholder="z. B. Schwimmen 100m" style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e2e2', borderRadius: 6, fontSize: 13, fontFamily: 'inherit', outline: 'none' }} />
         </div>
       </div>
+
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 24, padding: '14px 16px', background: '#f5f5f5', borderRadius: 8, border: '0.5px solid #e2e2e2' }}>
         <div>
           <label style={{ display: 'block', fontSize: 11, color: '#888', marginBottom: 4 }}>Kosten / Jahr (EUR)</label>
@@ -339,9 +334,11 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
           </div>
         </div>
       </div>
+
       <div style={{ fontSize: 10, fontWeight: 500, color: '#888', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 14, paddingBottom: 6, borderBottom: '0.5px solid #e2e2e2' }}>
         Scoring-Kriterien
       </div>
+
       {Object.entries(CATS).map(([k, c]) => {
         const isM = k === cat
         const avg = catAvg(form.scores, k, computed)
@@ -383,6 +380,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
           </div>
         )
       })}
+
       <div style={{ display: 'flex', gap: 8, paddingTop: 16, borderTop: '0.5px solid #e2e2e2', marginTop: 8 }}>
         {!isNew && (
           <button onClick={onDelete} style={{ background: 'none', border: '0.5px solid #e2e2e2', color: '#aaa', padding: '8px 14px', borderRadius: 6, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
@@ -392,7 +390,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
         <button onClick={onBack} style={{ background: 'none', border: '0.5px solid #ccc', color: '#1a1a1a', padding: '8px 14px', borderRadius: 6, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', marginLeft: isNew ? 'auto' : 0 }}>
           Abbrechen
         </button>
-        <button onClick={handleSave} disabled={saving || uploading} style={{ background: RED, color: '#fff', border: 'none', padding: '8px 22px', borderRadius: 6, fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', opacity: (saving || uploading) ? 0.7 : 1 }}>
+        <button onClick={handleSave} disabled={saving} style={{ background: RED, color: '#fff', border: 'none', padding: '8px 22px', borderRadius: 6, fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', opacity: saving ? 0.7 : 1 }}>
           {saving ? 'Speichern...' : 'Speichern'}
         </button>
       </div>
@@ -410,45 +408,26 @@ export default function Home() {
   useEffect(() => {
     async function load() {
       try {
-        const { data, error } = await supabase
-          .from('athletes')
-          .select('*')
-          .order('created_at', { ascending: true })
-        if (data && !error) {
-          setAthletes(data)
-          setIsLive(true)
-        } else {
-          setAthletes([])
-        }
-      } catch {
-        setAthletes([])
-      }
+        const { data, error } = await supabase.from('athletes').select('*').order('created_at', { ascending: true })
+        if (data && !error) { setAthletes(data); setIsLive(true) }
+        else setAthletes([])
+      } catch { setAthletes([]) }
       setLoaded(true)
     }
     load()
   }, [])
 
   const openAdd = () => {
-    setEditData({ id: Date.now(), name: '', sport: '', image: null, cost: '', reach_sm: '', scores: blankScores() })
+    setEditData({ id: Date.now(), name: '', sport: '', image: null, image_position: 50, cost: '', reach_sm: '', scores: blankScores() })
     setView('edit')
   }
-
-  const openEdit = (a: Athlete) => {
-    setEditData({ ...a, scores: { ...a.scores } })
-    setView('edit')
-  }
-
+  const openEdit = (a: Athlete) => { setEditData({ ...a, scores: { ...a.scores } }); setView('edit') }
   const goBack = () => { setView('grid'); setEditData(null) }
 
   const handleSave = async (data: Athlete) => {
     try {
       const { error } = await supabase.from('athletes').upsert(data)
-      if (!error) {
-        setAthletes(prev => {
-          const idx = prev.findIndex(a => a.id === data.id)
-          return idx >= 0 ? prev.map(a => a.id === data.id ? data : a) : [...prev, data]
-        })
-      }
+      if (!error) setAthletes(prev => { const idx = prev.findIndex(a => a.id === data.id); return idx >= 0 ? prev.map(a => a.id === data.id ? data : a) : [...prev, data] })
     } catch {}
     goBack()
   }
@@ -462,13 +441,7 @@ export default function Home() {
     goBack()
   }
 
-  if (!loaded) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', color: '#888' }}>
-        Lade...
-      </div>
-    )
-  }
+  if (!loaded) return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', color: '#888' }}>Lade...</div>
 
   return (
     <div style={{ minHeight: '100vh', background: '#fff' }}>
@@ -495,18 +468,10 @@ export default function Home() {
               <CitroenLogo size={48} />
               <p style={{ marginTop: 16, fontSize: 14 }}>Noch keine Athleten.<br />Klick auf Athlet hinzufuegen.</p>
             </div>
-          ) : (
-            athletes.map(a => <AthleteCard key={a.id} athlete={a} onClick={() => openEdit(a)} />)
-          )}
+          ) : athletes.map(a => <AthleteCard key={a.id} athlete={a} onClick={() => openEdit(a)} />)}
         </div>
       ) : editData ? (
-        <EditView
-          data={editData}
-          isNew={!athletes.find(a => a.id === editData.id)}
-          onSave={handleSave}
-          onDelete={handleDelete}
-          onBack={goBack}
-        />
+        <EditView data={editData} isNew={!athletes.find(a => a.id === editData.id)} onSave={handleSave} onDelete={handleDelete} onBack={goBack} />
       ) : null}
     </div>
   )
