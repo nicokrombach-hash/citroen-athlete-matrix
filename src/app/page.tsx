@@ -151,22 +151,15 @@ function compressImage(file: File): Promise<string> {
   })
 }
 
-function CitroenLogo({ size=28 }: { size?: number }) {
-  const id = `cc${size}`
+function CitroenLogo({ size=55 }: { size?: number }) {
   return (
-    <svg width={size} height={Math.round(size*1.21)} viewBox="0 0 100 120" fill="none">
-      <defs>
-        <clipPath id={id}>
-          <ellipse cx="50" cy="56" rx="37" ry="47"/>
-        </clipPath>
-      </defs>
-      <ellipse cx="50" cy="56" rx="40" ry="50" stroke="#1a1a1a" strokeWidth="6" fill="none"/>
-      <g clipPath={`url(#${id})`}>
-        <path d="M10,44 L50,16 L90,44 L80,44 L50,28 L20,44 Z" fill="#1a1a1a"/>
-        <path d="M10,85 L50,57 L90,85 L80,85 L50,69 L20,85 Z" fill="#1a1a1a"/>
-        <rect x="0" y="85" width="100" height="25" fill="#1a1a1a"/>
-      </g>
-    </svg>
+    <img
+      src="/e4bfbd5e29837015b0189ed9012fe38e66d95fab.jpeg"
+      width={size}
+      height={Math.round(size * 1.2)}
+      alt="Citroen"
+      style={{ objectFit: 'contain' }}
+    />
   )
 }
 
@@ -344,7 +337,6 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
             <span style={{fontSize:11,fontWeight:500,color:'#B8860B'}}>{computeCostScore(form.cost).toFixed(1)}</span>
           </div>
         </div>
-
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10,marginBottom:10}}>
           <div>
             <label style={{display:'block',fontSize:11,color:'#E1306C',marginBottom:4}}>Instagram Follower</label>
@@ -359,7 +351,6 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
             <input type="number" min="0" step="1000" value={form.reach_youtube} onChange={e=>updateField('reach_youtube',e.target.value)} placeholder="z. B. 5000" style={inp}/>
           </div>
         </div>
-
         <div style={{display:'flex',alignItems:'center',gap:6}}>
           <span style={{fontSize:10,color:'#888'}}>Reichweite gesamt ({fmtReach(String(totalReach(form)))}):</span>
           <div style={{flex:1,height:4,background:'#e2e2e2',borderRadius:2,overflow:'hidden'}}>
@@ -468,8 +459,8 @@ export default function Home() {
 
   return (
     <div style={{minHeight:'100vh',background:'#fff'}}>
-      <header style={{display:'flex',alignItems:'center',gap:12,padding:'0 24px',height:58,borderBottom:`2.5px solid ${RED}`,background:'#fff',position:'sticky',top:0,zIndex:10}}>
-        <CitroenLogo size={28}/>
+      <header style={{display:'flex',alignItems:'center',gap:12,padding:'0 24px',height:70,borderBottom:`2.5px solid ${RED}`,background:'#fff',position:'sticky',top:0,zIndex:10}}>
+        <CitroenLogo size={55}/>
         <div>
           <div style={{fontSize:10,color:RED,letterSpacing:'0.15em',textTransform:'uppercase',fontWeight:500}}>Citroen</div>
           <div style={{fontSize:17,fontWeight:500,lineHeight:1}}>Athlete Squad Matrix</div>
@@ -489,7 +480,7 @@ export default function Home() {
         <div style={{padding:'20px 24px',display:'grid',gridTemplateColumns:'repeat(auto-fill, minmax(280px, 1fr))',gap:14}}>
           {athletes.length===0?(
             <div style={{gridColumn:'1/-1',textAlign:'center',padding:80,color:'#aaa'}}>
-              <CitroenLogo size={48}/>
+              <CitroenLogo size={80}/>
               <p style={{marginTop:16,fontSize:14}}>Noch keine Athleten.<br/>Klick auf Athlet hinzufuegen.</p>
             </div>
           ):athletes.map(a=><AthleteCard key={a.id} athlete={a} onClick={()=>openEdit(a)}/>)}
