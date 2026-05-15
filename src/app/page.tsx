@@ -27,21 +27,21 @@ const CATS: Record<string, { label: string; abbr: string; color: string }> = {
 }
 
 const CRIT = [
-  { key: 'brand_match',  label: 'Markenwerte-Match',        cat: 'hero',      w: 1.5, hint: 'Passt der Athlet zu Citroens Werten?' },
-  { key: 'recognition',  label: 'Wiedererkennungswert',     cat: 'hero',      w: 1.5, hint: 'Bekanntheit in D und international' },
-  { key: 'reach',        label: 'Strahlkraft Reichweite',   cat: 'hero',      w: 1.0, hint: 'Qualitative Strahlkraft' },
-  { key: 'medal_chance', label: 'Medaillenchance LA28',      cat: 'medal',     w: 2.0, hint: 'Wie realistisch ist eine Medaille?' },
-  { key: 'track_record', label: 'Int. Track Record',         cat: 'medal',     w: 1.5, hint: 'Internationale Erfolge' },
-  { key: 'consistency',  label: 'Wettkampf-Konstanz',        cat: 'medal',     w: 1.0, hint: 'Stabile Performance unter Druck' },
-  { key: 'story_depth',  label: 'Emotionale Story-Tiefe',    cat: 'inspiring', w: 1.5, hint: 'Tiefe der persoenlichen Geschichte' },
-  { key: 'resilience',   label: 'Comeback Resilience',       cat: 'inspiring', w: 1.5, hint: 'Ueberwindung von Rueckschlaegen' },
-  { key: 'authenticity', label: 'Authentizitaet',            cat: 'inspiring', w: 1.0, hint: 'Glaubwuerdigkeit der Story' },
-  { key: 'para_profile', label: 'Para-Profil Sichtbarkeit',  cat: 'para',      w: 1.5, hint: 'Bekanntheit im Para-Sport' },
-  { key: 'para_medals',  label: 'Medaillen-Potenzial Para',  cat: 'para',      w: 2.0, hint: 'Para-Medaillenchance' },
-  { key: 'inclusion',    label: 'Inklusions-Statement',       cat: 'para',      w: 1.0, hint: 'Kraft als Inklusionsbotschafter' },
-  { key: 'breakout',     label: 'Breakout-Potenzial',         cat: 'rising',    w: 1.5, hint: 'Potenzial zum naechsten grossen Namen' },
-  { key: 'youth_appeal', label: 'Junge Zielgruppe 16-30',     cat: 'rising',    w: 1.0, hint: 'Relevanz fuer junge Fans' },
-  { key: 'engagement',   label: 'Content-Qualitaet',          cat: 'rising',    w: 1.5, hint: 'Qualitaet des Social-Contents' },
+  { key: 'brand_match',  label: 'Markenwerte-Match',       cat: 'hero',      w: 1.5, hint: 'Passt der Athlet zu Citroens Werten?' },
+  { key: 'recognition',  label: 'Wiedererkennungswert',    cat: 'hero',      w: 1.5, hint: 'Bekanntheit in D und international' },
+  { key: 'reach',        label: 'Strahlkraft Reichweite',  cat: 'hero',      w: 1.0, hint: 'Qualitative Strahlkraft' },
+  { key: 'medal_chance', label: 'Medaillenchance LA28',     cat: 'medal',     w: 2.0, hint: 'Wie realistisch ist eine Medaille?' },
+  { key: 'track_record', label: 'Int. Track Record',        cat: 'medal',     w: 1.5, hint: 'Internationale Erfolge' },
+  { key: 'consistency',  label: 'Wettkampf-Konstanz',       cat: 'medal',     w: 1.0, hint: 'Stabile Performance unter Druck' },
+  { key: 'story_depth',  label: 'Emotionale Story-Tiefe',   cat: 'inspiring', w: 1.5, hint: 'Tiefe der persoenlichen Geschichte' },
+  { key: 'resilience',   label: 'Comeback Resilience',      cat: 'inspiring', w: 1.5, hint: 'Ueberwindung von Rueckschlaegen' },
+  { key: 'authenticity', label: 'Authentizitaet',           cat: 'inspiring', w: 1.0, hint: 'Glaubwuerdigkeit der Story' },
+  { key: 'para_profile', label: 'Para-Profil Sichtbarkeit', cat: 'para',      w: 1.5, hint: 'Bekanntheit im Para-Sport' },
+  { key: 'para_medals',  label: 'Medaillen-Potenzial Para', cat: 'para',      w: 2.0, hint: 'Para-Medaillenchance' },
+  { key: 'inclusion',    label: 'Inklusions-Statement',      cat: 'para',      w: 1.0, hint: 'Kraft als Inklusionsbotschafter' },
+  { key: 'breakout',     label: 'Breakout-Potenzial',        cat: 'rising',    w: 1.5, hint: 'Potenzial zum naechsten grossen Namen' },
+  { key: 'youth_appeal', label: 'Junge Zielgruppe 16-30',    cat: 'rising',    w: 1.0, hint: 'Relevanz fuer junge Fans' },
+  { key: 'engagement',   label: 'Content-Qualitaet',         cat: 'rising',    w: 1.5, hint: 'Qualitaet des Social-Contents' },
 ]
 
 const COMP = [
@@ -72,11 +72,13 @@ function initials(name: string) {
   return (name||'?').split(' ').map((w:string)=>w[0]||'').slice(0,2).join('').toUpperCase()
 }
 function fmtCost(v: string) {
-  const n = Number(v); if (!n) return '--'
+  const n = Number(v)
+  if (!n) return '--'
   return 'EUR ' + n.toLocaleString('de-DE')
 }
 function fmtReach(v: string) {
-  const n = Number(v); if (!n) return '0'
+  const n = Number(v)
+  if (!n) return '0'
   if (n >= 1000000) return (n/1000000).toFixed(1)+'M'
   if (n >= 1000) return Math.round(n/1000)+'k'
   return String(n)
@@ -96,7 +98,8 @@ function computeReachScore(n: number): number {
   return 10
 }
 function computeCostScore(v: string): number {
-  const n=Number(v)||0; if (n<=0) return 5
+  const n=Number(v)||0
+  if (n<=0) return 5
   const t: [number,number][] = [[0,10],[25000,9],[75000,8],[150000,7],[250000,6],[400000,5],[600000,4],[1000000,2],[2000000,1]]
   for (let i=1;i<t.length;i++) {
     if (n<=t[i][0]) {
@@ -113,13 +116,13 @@ function getComputed(a: Athlete) {
   }
 }
 function catAvg(scores: Scores, cat: string, computed: Record<string,number>): number {
-  let s=0,w=0
+  let s=0, w=0
   for (const c of BY_CAT[cat]) { s+=(scores[c.key]??5)*c.w; w+=c.w }
   for (const c of BY_COMP[cat]) { s+=(computed[c.key]??5)*c.w; w+=c.w }
   return s/w
 }
 function autoAssign(scores: Scores, computed: Record<string,number>): string {
-  let best='hero',bs=-1
+  let best='hero', bs=-1
   for (const k of Object.keys(CATS)) { const s=catAvg(scores,k,computed); if(s>bs){bs=s;best=k} }
   return best
 }
@@ -149,11 +152,20 @@ function compressImage(file: File): Promise<string> {
 }
 
 function CitroenLogo({ size=28 }: { size?: number }) {
+  const id = `cc${size}`
   return (
     <svg width={size} height={Math.round(size*1.21)} viewBox="0 0 100 120" fill="none">
-      <ellipse cx="50" cy="60" rx="44" ry="52" stroke="#1a1a1a" strokeWidth="6" fill="none"/>
-      <path d="M18,58 L50,28 L82,58 L73,58 L50,38 L27,58 Z" fill="#1a1a1a"/>
-      <path d="M18,75 L50,45 L82,75 L73,75 L50,55 L27,75 Z" fill="#1a1a1a"/>
+      <defs>
+        <clipPath id={id}>
+          <ellipse cx="50" cy="56" rx="37" ry="47"/>
+        </clipPath>
+      </defs>
+      <ellipse cx="50" cy="56" rx="40" ry="50" stroke="#1a1a1a" strokeWidth="6" fill="none"/>
+      <g clipPath={`url(#${id})`}>
+        <path d="M10,44 L50,16 L90,44 L80,44 L50,28 L20,44 Z" fill="#1a1a1a"/>
+        <path d="M10,85 L50,57 L90,85 L80,85 L50,69 L20,85 Z" fill="#1a1a1a"/>
+        <rect x="0" y="85" width="100" height="25" fill="#1a1a1a"/>
+      </g>
     </svg>
   )
 }
@@ -191,7 +203,7 @@ function AthleteCard({ athlete, onClick }: { athlete: Athlete; onClick: () => vo
             {athlete.cost && <span style={{fontSize:11,fontWeight:500,color:'#1a1a1a'}}>{fmtCost(athlete.cost)}</span>}
             {athlete.cost && tr>0 && <div style={{width:1,background:'#e2e2e2',height:12}}/>}
             {Number(athlete.reach_insta)>0 && <span style={{fontSize:10}}><span style={{color:'#E1306C',fontWeight:600}}>IG</span> <span style={{fontWeight:500}}>{fmtReach(athlete.reach_insta)}</span></span>}
-            {Number(athlete.reach_tiktok)>0 && <span style={{fontSize:10}}><span style={{color:'#000',fontWeight:600}}>TT</span> <span style={{fontWeight:500}}>{fmtReach(athlete.reach_tiktok)}</span></span>}
+            {Number(athlete.reach_tiktok)>0 && <span style={{fontSize:10}}><span style={{color:'#555',fontWeight:600}}>TT</span> <span style={{fontWeight:500}}>{fmtReach(athlete.reach_tiktok)}</span></span>}
             {Number(athlete.reach_youtube)>0 && <span style={{fontSize:10}}><span style={{color:'#FF0000',fontWeight:600}}>YT</span> <span style={{fontWeight:500}}>{fmtReach(athlete.reach_youtube)}</span></span>}
           </div>
         )}
@@ -232,7 +244,8 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
   const updateField = (field: keyof Athlete, val: string) => setForm(f=>({...f,[field]:val}))
 
   const handleImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]; if(!file) return
+    const file = e.target.files?.[0]
+    if (!file) return
     setUploading(true)
     const b64 = await compressImage(file)
     setForm(f=>({...f,image:b64,image_position:50}))
@@ -247,7 +260,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
     setSaving(false)
   }
 
-  const inp = { width:'100%', padding:'8px 10px', border:'1px solid #e2e2e2', borderRadius:6, fontSize:13, fontFamily:'inherit', outline:'none' } as React.CSSProperties
+  const inp: React.CSSProperties = { width:'100%', padding:'8px 10px', border:'1px solid #e2e2e2', borderRadius:6, fontSize:13, fontFamily:'inherit', outline:'none' }
 
   return (
     <div style={{maxWidth:680,margin:'0 auto',padding:'20px 24px'}}>
@@ -263,7 +276,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
         <div style={{fontSize:11,color:'#888',marginLeft:8}}>Score {catAvg(form.scores,cat,computed).toFixed(2)}</div>
         <div style={{display:'flex',gap:5,alignItems:'flex-end',marginLeft:'auto'}}>
           {Object.entries(CATS).map(([k,c])=>{
-            const s=catAvg(form.scores,k,computed),isM=k===cat
+            const s=catAvg(form.scores,k,computed), isM=k===cat
             return (
               <div key={k} title={`${c.label}: ${s.toFixed(2)}`} style={{width:22,display:'flex',flexDirection:'column-reverse',borderRadius:3,overflow:'hidden',height:28,background:'#e2e2e2',border:`1px solid ${isM?c.color:'transparent'}`}}>
                 <div style={{width:'100%',height:`${(s/10*100).toFixed(0)}%`,background:isM?c.color:'#c0c0c0',transition:'height 0.2s'}}/>
@@ -291,7 +304,9 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
               <label style={{fontSize:11,color:'#888'}}>Bildposition (oben bis unten)</label>
               <span style={{fontSize:11,color:'#888'}}>{pos}%</span>
             </div>
-            <input type="range" min="0" max="100" step="1" value={pos} onChange={e=>setForm(f=>({...f,image_position:Number(e.target.value)}))} style={{width:'100%',accentColor:RED}}/>
+            <input type="range" min="0" max="100" step="1" value={pos}
+              onChange={e=>setForm(f=>({...f,image_position:Number(e.target.value)}))}
+              style={{width:'100%',accentColor:RED}}/>
             <div style={{display:'flex',justifyContent:'space-between',fontSize:10,color:'#bbb',marginTop:2}}>
               <span>Oben</span><span>Unten</span>
             </div>
@@ -329,6 +344,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
             <span style={{fontSize:11,fontWeight:500,color:'#B8860B'}}>{computeCostScore(form.cost).toFixed(1)}</span>
           </div>
         </div>
+
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10,marginBottom:10}}>
           <div>
             <label style={{display:'block',fontSize:11,color:'#E1306C',marginBottom:4}}>Instagram Follower</label>
@@ -343,6 +359,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
             <input type="number" min="0" step="1000" value={form.reach_youtube} onChange={e=>updateField('reach_youtube',e.target.value)} placeholder="z. B. 5000" style={inp}/>
           </div>
         </div>
+
         <div style={{display:'flex',alignItems:'center',gap:6}}>
           <span style={{fontSize:10,color:'#888'}}>Reichweite gesamt ({fmtReach(String(totalReach(form)))}):</span>
           <div style={{flex:1,height:4,background:'#e2e2e2',borderRadius:2,overflow:'hidden'}}>
@@ -433,4 +450,53 @@ export default function Home() {
     try {
       const {error} = await supabase.from('athletes').upsert(data)
       if (error) { alert('Fehler beim Speichern: '+error.message); return }
-      setAthletes(prev=>{const idx=prev.findI
+      setAthletes(prev=>{const idx=prev.findIndex(a=>a.id===data.id);return idx>=0?prev.map(a=>a.id===data.id?data:a):[...prev,data]})
+      goBack()
+    } catch { alert('Unbekannter Fehler beim Speichern.') }
+  }
+
+  const handleDelete = async () => {
+    if (!editData||!confirm('Athleten wirklich loeschen?')) return
+    try {
+      const {error} = await supabase.from('athletes').delete().eq('id',editData.id)
+      if (!error) setAthletes(prev=>prev.filter(a=>a.id!==editData.id))
+    } catch {}
+    goBack()
+  }
+
+  if (!loaded) return <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',color:'#888'}}>Lade...</div>
+
+  return (
+    <div style={{minHeight:'100vh',background:'#fff'}}>
+      <header style={{display:'flex',alignItems:'center',gap:12,padding:'0 24px',height:58,borderBottom:`2.5px solid ${RED}`,background:'#fff',position:'sticky',top:0,zIndex:10}}>
+        <CitroenLogo size={28}/>
+        <div>
+          <div style={{fontSize:10,color:RED,letterSpacing:'0.15em',textTransform:'uppercase',fontWeight:500}}>Citroen</div>
+          <div style={{fontSize:17,fontWeight:500,lineHeight:1}}>Athlete Squad Matrix</div>
+        </div>
+        <div style={{display:'flex',alignItems:'center',gap:6,marginLeft:16,padding:'3px 10px',borderRadius:20,background:isLive?'#f0fdf4':'#fef2f2',border:`1px solid ${isLive?'#86efac':'#fca5a5'}`}}>
+          <div style={{width:7,height:7,borderRadius:'50%',background:isLive?'#22c55e':RED,boxShadow:isLive?'0 0 0 2px rgba(34,197,94,0.3)':'none'}}/>
+          <span style={{fontSize:11,fontWeight:500,color:isLive?'#16a34a':RED}}>{isLive?'Live':'Offline'}</span>
+        </div>
+        {view==='grid' && (
+          <button onClick={openAdd} style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:6,background:RED,color:'#fff',border:'none',padding:'8px 16px',borderRadius:6,fontSize:12,fontWeight:500,cursor:'pointer',fontFamily:'inherit'}}>
+            + Athlet hinzufuegen
+          </button>
+        )}
+      </header>
+
+      {view==='grid'?(
+        <div style={{padding:'20px 24px',display:'grid',gridTemplateColumns:'repeat(auto-fill, minmax(280px, 1fr))',gap:14}}>
+          {athletes.length===0?(
+            <div style={{gridColumn:'1/-1',textAlign:'center',padding:80,color:'#aaa'}}>
+              <CitroenLogo size={48}/>
+              <p style={{marginTop:16,fontSize:14}}>Noch keine Athleten.<br/>Klick auf Athlet hinzufuegen.</p>
+            </div>
+          ):athletes.map(a=><AthleteCard key={a.id} athlete={a} onClick={()=>openEdit(a)}/>)}
+        </div>
+      ):editData?(
+        <EditView data={editData} isNew={!athletes.find(a=>a.id===editData.id)} onSave={handleSave} onDelete={handleDelete} onBack={goBack}/>
+      ):null}
+    </div>
+  )
+}
