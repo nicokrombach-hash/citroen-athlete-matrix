@@ -126,7 +126,7 @@ function autoAssign(scores: Scores, computed: Record<string,number>): string {
 }
 function blankScores(): Scores { return Object.fromEntries(CRIT.map(c=>[c.key,5])) }
 function blankAthlete(id: number): Athlete {
-  return { id, name:'', sport:'', image:null, image_position:50, cost:'', reach_insta:'', reach_tiktok:'', reach_youtube:'', scores:blankScores() }
+  return { id, name:'', sport:'', image:null, image_position:15, cost:'', reach_insta:'', reach_tiktok:'', reach_youtube:'', scores:blankScores() }
 }
 
 function compressImage(file: File): Promise<string> {
@@ -166,31 +166,31 @@ function AthleteCard({ athlete, onClick }: { athlete: Athlete; onClick: () => vo
   const cat = autoAssign(athlete.scores, computed)
   const info = CATS[cat]
   const ini = initials(athlete.name)
-  const pos = athlete.image_position ?? 50
+  const pos = athlete.image_position ?? 15
   const tr = totalReach(athlete)
   const hasMeta = athlete.cost || tr > 0
 
   return (
     <div onClick={onClick}
-      style={{ background:'#fff', border:`1px solid ${RED}`, borderRadius:10, overflow:'hidden', cursor:'pointer', transition:'box-shadow 0.15s' }}
+      style={{ background:'#fff', border:`1px solid ${RED}`, borderRadius:2, overflow:'hidden', cursor:'pointer', transition:'box-shadow 0.15s' }}
       onMouseEnter={e=>{(e.currentTarget as HTMLDivElement).style.boxShadow=`0 4px 16px ${rgba(RED,0.15)}`}}
       onMouseLeave={e=>{(e.currentTarget as HTMLDivElement).style.boxShadow='none'}}
     >
       <div style={{height:3,background:info.color}}/>
-      <div style={{width:'100%',height:200,background:rgba(info.color,0.06),display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',position:'relative'}}>
+      <div style={{width:'100%',height:240,background:rgba(info.color,0.06),display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',position:'relative'}}>
         {athlete.image
           ? <img src={athlete.image} alt={athlete.name} style={{width:'100%',height:'100%',objectFit:'cover',objectPosition:`center ${pos}%`}}/>
           : <div style={{width:80,height:80,borderRadius:'50%',background:rgba(info.color,0.15),color:info.color,display:'flex',alignItems:'center',justifyContent:'center',fontSize:28,fontWeight:500}}>{ini}</div>
         }
-        <div style={{position:'absolute',top:10,left:10}}>
-          <div style={{display:'inline-block',fontSize:10,fontWeight:500,padding:'3px 8px',borderRadius:4,background:'rgba(255,255,255,0.92)',color:info.color}}>{info.label}</div>
+        <div style={{position:'absolute',top:8,left:8}}>
+          <div style={{display:'inline-block',fontSize:10,fontWeight:500,padding:'3px 8px',borderRadius:2,background:'rgba(255,255,255,0.93)',color:info.color}}>{info.label}</div>
         </div>
       </div>
-      <div style={{padding:'12px 16px'}}>
-        <div style={{fontSize:16,fontWeight:500,lineHeight:1.2,marginBottom:2}}>{athlete.name||'--'}</div>
+      <div style={{padding:'12px 14px'}}>
+        <div style={{fontSize:15,fontWeight:600,lineHeight:1.2,marginBottom:2}}>{athlete.name||'--'}</div>
         <div style={{fontSize:11,color:'#888',marginBottom:hasMeta?8:10}}>{athlete.sport}</div>
         {hasMeta && (
-          <div style={{display:'flex',gap:8,marginBottom:10,padding:'6px 10px',background:'#f5f5f5',borderRadius:6,flexWrap:'wrap',alignItems:'center'}}>
+          <div style={{display:'flex',gap:8,marginBottom:10,padding:'6px 10px',background:'#f5f5f5',borderRadius:2,flexWrap:'wrap',alignItems:'center'}}>
             {athlete.cost && <span style={{fontSize:11,fontWeight:500,color:'#1a1a1a'}}>{fmtCost(athlete.cost)}</span>}
             {athlete.cost && tr>0 && <div style={{width:1,background:'#e2e2e2',height:12}}/>}
             {Number(athlete.reach_insta)>0 && <span style={{fontSize:10}}><span style={{color:'#E1306C',fontWeight:600}}>IG</span> <span style={{fontWeight:500}}>{fmtReach(athlete.reach_insta)}</span></span>}
@@ -199,13 +199,13 @@ function AthleteCard({ athlete, onClick }: { athlete: Athlete; onClick: () => vo
           </div>
         )}
         <div style={{borderTop:'0.5px solid #e2e2e2',paddingTop:10}}>
-          {Object.entries(CATS).map(([k,c])=>{
-            const s=catAvg(athlete.scores,k,computed), isM=k===cat
+          {CAT_ORDER.map(k=>{
+            const c=CATS[k], s=catAvg(athlete.scores,k,computed), isM=k===cat
             return (
               <div key={k} style={{display:'flex',alignItems:'center',gap:7,marginBottom:5}}>
                 <div style={{fontSize:9,fontWeight:500,letterSpacing:'0.06em',width:52,flexShrink:0,color:isM?c.color:'#aaa'}}>{c.abbr}</div>
-                <div style={{flex:1,height:3,background:'#e2e2e2',borderRadius:2,overflow:'hidden'}}>
-                  <div style={{width:`${(s/10*100).toFixed(0)}%`,height:'100%',background:isM?c.color:'#d0d0d0',borderRadius:2}}/>
+                <div style={{flex:1,height:3,background:'#e2e2e2',borderRadius:1,overflow:'hidden'}}>
+                  <div style={{width:`${(s/10*100).toFixed(0)}%`,height:'100%',background:isM?c.color:'#d0d0d0'}}/>
                 </div>
                 <div style={{fontSize:9,width:24,textAlign:'right',color:isM?c.color:'#aaa'}}>{s.toFixed(1)}</div>
               </div>
@@ -228,7 +228,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
   const computed = getComputed(form)
   const cat = autoAssign(form.scores, computed)
   const info = CATS[cat]
-  const pos = form.image_position ?? 50
+  const pos = form.image_position ?? 15
 
   const updateScore = (key: string, val: number) => setForm(f=>({...f,scores:{...f.scores,[key]:val}}))
   const updateField = (field: keyof Athlete, val: string) => setForm(f=>({...f,[field]:val}))
@@ -237,7 +237,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
     const file = e.target.files?.[0]; if (!file) return
     setUploading(true)
     const b64 = await compressImage(file)
-    setForm(f=>({...f,image:b64,image_position:50}))
+    setForm(f=>({...f,image:b64,image_position:15}))
     setUploading(false)
     e.target.value=''
   }
@@ -249,7 +249,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
     setSaving(false)
   }
 
-  const inp: React.CSSProperties = { width:'100%', padding:'8px 10px', border:'1px solid #e2e2e2', borderRadius:6, fontSize:13, fontFamily:'inherit', outline:'none' }
+  const inp: React.CSSProperties = { width:'100%', padding:'8px 10px', border:'1px solid #e2e2e2', borderRadius:4, fontSize:13, fontFamily:'inherit', outline:'none' }
 
   return (
     <div style={{maxWidth:680,margin:'0 auto',padding:'20px 24px'}}>
@@ -257,7 +257,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
         Zurueck zur Uebersicht
       </button>
 
-      <div style={{background:rgba(info.color,0.08),border:`0.5px solid ${rgba(info.color,0.3)}`,borderRadius:8,padding:'10px 14px',marginBottom:20,display:'flex',alignItems:'center',gap:10}}>
+      <div style={{background:rgba(info.color,0.08),border:`0.5px solid ${rgba(info.color,0.3)}`,borderRadius:6,padding:'10px 14px',marginBottom:20,display:'flex',alignItems:'center',gap:10}}>
         <div>
           <div style={{fontSize:10,color:'#888',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:2}}>Kategorie (auto):</div>
           <div style={{fontSize:14,fontWeight:500,color:info.color}}>{info.label}</div>
@@ -267,7 +267,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
           {CAT_ORDER.map(k=>{
             const c=CATS[k], s=catAvg(form.scores,k,computed), isM=k===cat
             return (
-              <div key={k} title={`${c.label}: ${s.toFixed(2)}`} style={{width:22,display:'flex',flexDirection:'column-reverse',borderRadius:3,overflow:'hidden',height:28,background:'#e2e2e2',border:`1px solid ${isM?c.color:'transparent'}`}}>
+              <div key={k} title={`${c.label}: ${s.toFixed(2)}`} style={{width:22,display:'flex',flexDirection:'column-reverse',borderRadius:2,overflow:'hidden',height:28,background:'#e2e2e2',border:`1px solid ${isM?c.color:'transparent'}`}}>
                 <div style={{width:'100%',height:`${(s/10*100).toFixed(0)}%`,background:isM?c.color:'#c0c0c0',transition:'height 0.2s'}}/>
               </div>
             )
@@ -276,7 +276,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
       </div>
 
       <div style={{marginBottom:20}}>
-        <div style={{width:'100%',height:240,borderRadius:10,overflow:'hidden',background:rgba(info.color,0.06),border:`1px solid ${rgba(info.color,0.2)}`,display:'flex',alignItems:'center',justifyContent:'center',position:'relative',marginBottom:10}}>
+        <div style={{width:'100%',height:260,overflow:'hidden',background:rgba(info.color,0.06),border:`1px solid ${rgba(info.color,0.2)}`,display:'flex',alignItems:'center',justifyContent:'center',position:'relative',marginBottom:10}}>
           {form.image
             ? <img src={form.image} alt={form.name} style={{width:'100%',height:'100%',objectFit:'cover',objectPosition:`center ${pos}%`}}/>
             : <div style={{textAlign:'center',color:'#bbb'}}><div style={{fontSize:48,marginBottom:8}}>&#128100;</div><div style={{fontSize:12}}>Noch kein Foto</div></div>
@@ -288,19 +288,19 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
           )}
         </div>
         {form.image && (
-          <div style={{marginBottom:10,padding:'10px 14px',background:'#f5f5f5',borderRadius:8,border:'0.5px solid #e2e2e2'}}>
+          <div style={{marginBottom:10,padding:'10px 14px',background:'#f5f5f5',borderRadius:4,border:'0.5px solid #e2e2e2'}}>
             <div style={{display:'flex',justifyContent:'space-between',marginBottom:6}}>
-              <label style={{fontSize:11,color:'#888'}}>Bildposition (oben bis unten)</label>
+              <label style={{fontSize:11,color:'#888'}}>Bildausschnitt</label>
               <span style={{fontSize:11,color:'#888'}}>{pos}%</span>
             </div>
             <input type="range" min="0" max="100" step="1" value={pos} onChange={e=>setForm(f=>({...f,image_position:Number(e.target.value)}))} style={{width:'100%',accentColor:RED}}/>
             <div style={{display:'flex',justifyContent:'space-between',fontSize:10,color:'#bbb',marginTop:2}}>
-              <span>Oben</span><span>Unten</span>
+              <span>Gesicht / Oben</span><span>Koerper / Unten</span>
             </div>
           </div>
         )}
         <div style={{display:'flex',gap:8,alignItems:'center'}}>
-          <label style={{display:'flex',alignItems:'center',gap:7,border:'0.5px solid #ccc',padding:'7px 14px',borderRadius:6,fontSize:12,cursor:'pointer',background:'#fff'}}>
+          <label style={{display:'flex',alignItems:'center',gap:7,border:'0.5px solid #ccc',padding:'7px 14px',borderRadius:4,fontSize:12,cursor:'pointer',background:'#fff'}}>
             Foto hochladen
             <input type="file" accept="image/*" onChange={handleImage} style={{display:'none'}}/>
           </label>
@@ -319,14 +319,14 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
         </div>
       </div>
 
-      <div style={{marginBottom:24,padding:'14px 16px',background:'#f5f5f5',borderRadius:8,border:'0.5px solid #e2e2e2'}}>
+      <div style={{marginBottom:24,padding:'14px 16px',background:'#f5f5f5',borderRadius:6,border:'0.5px solid #e2e2e2'}}>
         <div style={{marginBottom:14}}>
           <label style={{display:'block',fontSize:11,color:'#888',marginBottom:4}}>Kosten / Jahr (EUR)</label>
           <input type="number" min="0" step="1000" value={form.cost} onChange={e=>updateField('cost',e.target.value)} placeholder="z. B. 150000" style={inp}/>
           <div style={{display:'flex',alignItems:'center',gap:6,marginTop:7}}>
             <span style={{fontSize:10,color:'#888'}}>Effizienz:</span>
             <div style={{flex:1,height:4,background:'#e2e2e2',borderRadius:2,overflow:'hidden'}}>
-              <div style={{width:`${computeCostScore(form.cost)/10*100}%`,height:'100%',background:'#B8860B',borderRadius:2}}/>
+              <div style={{width:`${computeCostScore(form.cost)/10*100}%`,height:'100%',background:'#B8860B'}}/>
             </div>
             <span style={{fontSize:11,fontWeight:500,color:'#B8860B'}}>{computeCostScore(form.cost).toFixed(1)}</span>
           </div>
@@ -348,7 +348,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
         <div style={{display:'flex',alignItems:'center',gap:6}}>
           <span style={{fontSize:10,color:'#888'}}>Reichweite gesamt ({fmtReach(String(totalReach(form)))}):</span>
           <div style={{flex:1,height:4,background:'#e2e2e2',borderRadius:2,overflow:'hidden'}}>
-            <div style={{width:`${computeReachScore(totalReach(form))/10*100}%`,height:'100%',background:'#0F7E45',borderRadius:2}}/>
+            <div style={{width:`${computeReachScore(totalReach(form))/10*100}%`,height:'100%',background:'#0F7E45'}}/>
           </div>
           <span style={{fontSize:11,fontWeight:500,color:'#0F7E45'}}>{computeReachScore(totalReach(form)).toFixed(1)}</span>
         </div>
@@ -380,10 +380,10 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
             {BY_COMP[k].map((cc,i)=>{
               const sc=computed[cc.key as keyof typeof computed]
               return (
-                <div key={i} style={{display:'flex',alignItems:'center',gap:8,marginBottom:7,padding:'5px 8px',background:'#f5f5f5',borderRadius:4}}>
+                <div key={i} style={{display:'flex',alignItems:'center',gap:8,marginBottom:7,padding:'5px 8px',background:'#f5f5f5',borderRadius:3}}>
                   <span style={{fontSize:11,color:'#888',minWidth:28}}>{cc.key==='social_reach_calc'?'SM':'EUR'}</span>
                   <span style={{fontSize:11,color:'#666',flex:1}}>{cc.label}</span>
-                  <div style={{width:60,height:3,background:'#e2e2e2',borderRadius:2,overflow:'hidden'}}>
+                  <div style={{width:60,height:3,background:'#e2e2e2',borderRadius:1,overflow:'hidden'}}>
                     <div style={{width:`${(sc/10*100).toFixed(0)}%`,height:'100%',background:isM?c.color:'#c0c0c0'}}/>
                   </div>
                   <span style={{fontSize:11,fontWeight:500,color:isM?c.color:'#888',minWidth:20,textAlign:'right'}}>{sc.toFixed(1)}</span>
@@ -396,9 +396,9 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
       })}
 
       <div style={{display:'flex',gap:8,paddingTop:16,borderTop:'0.5px solid #e2e2e2',marginTop:8}}>
-        {!isNew && <button onClick={onDelete} style={{background:'none',border:'0.5px solid #e2e2e2',color:'#aaa',padding:'8px 14px',borderRadius:6,fontSize:13,cursor:'pointer',fontFamily:'inherit'}}>Loeschen</button>}
-        <button onClick={onBack} style={{background:'none',border:'0.5px solid #ccc',color:'#1a1a1a',padding:'8px 14px',borderRadius:6,fontSize:13,cursor:'pointer',fontFamily:'inherit',marginLeft:isNew?'auto':0}}>Abbrechen</button>
-        <button onClick={handleSave} disabled={saving||uploading} style={{background:RED,color:'#fff',border:'none',padding:'8px 22px',borderRadius:6,fontSize:13,fontWeight:500,cursor:'pointer',fontFamily:'inherit',opacity:(saving||uploading)?0.7:1}}>
+        {!isNew && <button onClick={onDelete} style={{background:'none',border:'0.5px solid #e2e2e2',color:'#aaa',padding:'8px 14px',borderRadius:4,fontSize:13,cursor:'pointer',fontFamily:'inherit'}}>Loeschen</button>}
+        <button onClick={onBack} style={{background:'none',border:'0.5px solid #ccc',color:'#1a1a1a',padding:'8px 14px',borderRadius:4,fontSize:13,cursor:'pointer',fontFamily:'inherit',marginLeft:isNew?'auto':0}}>Abbrechen</button>
+        <button onClick={handleSave} disabled={saving||uploading} style={{background:RED,color:'#fff',border:'none',padding:'8px 22px',borderRadius:4,fontSize:13,fontWeight:500,cursor:'pointer',fontFamily:'inherit',opacity:(saving||uploading)?0.7:1}}>
           {saving?'Speichern...':'Speichern'}
         </button>
       </div>
@@ -418,7 +418,7 @@ export default function Home() {
       try {
         const {data,error} = await supabase.from('athletes').select('*').order('created_at',{ascending:true})
         if (data&&!error) {
-          setAthletes(data.map(a=>({reach_insta:'',reach_tiktok:'',reach_youtube:'',image_position:50,...a})))
+          setAthletes(data.map(a=>({reach_insta:'',reach_tiktok:'',reach_youtube:'',image_position:15,...a})))
           setIsLive(true)
         } else setAthletes([])
       } catch { setAthletes([]) }
@@ -451,7 +451,6 @@ export default function Home() {
 
   if (!loaded) return <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',color:'#888'}}>Lade...</div>
 
-  // Group and sort athletes by category
   const grouped: Record<string, Athlete[]> = { hero:[], medal:[], para:[], inspiring:[], rising:[] }
   for (const a of athletes) {
     const cat = autoAssign(a.scores, getComputed(a))
@@ -462,8 +461,8 @@ export default function Home() {
   }
 
   return (
-    <div style={{minHeight:'100vh',background:'#fff'}}>
-      <header style={{display:'flex',alignItems:'center',gap:12,padding:'0 24px',height:70,borderBottom:`2.5px solid ${RED}`,background:'#fff',position:'sticky',top:0,zIndex:10}}>
+    <div style={{minHeight:'100vh',background:'#fff',display:'flex',flexDirection:'column'}}>
+      <header style={{display:'flex',alignItems:'center',gap:12,padding:'0 24px',height:70,borderBottom:`2.5px solid ${RED}`,background:'#fff',flexShrink:0}}>
         <CitroenLogo size={55}/>
         <div>
           <div style={{fontSize:10,color:RED,letterSpacing:'0.15em',textTransform:'uppercase',fontWeight:500}}>Citroen</div>
@@ -474,48 +473,53 @@ export default function Home() {
           <span style={{fontSize:11,fontWeight:500,color:isLive?'#16a34a':RED}}>{isLive?'Live':'Offline'}</span>
         </div>
         {view==='grid' && (
-          <button onClick={openAdd} style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:6,background:RED,color:'#fff',border:'none',padding:'8px 16px',borderRadius:6,fontSize:12,fontWeight:500,cursor:'pointer',fontFamily:'inherit'}}>
+          <button onClick={openAdd} style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:6,background:RED,color:'#fff',border:'none',padding:'8px 16px',borderRadius:4,fontSize:12,fontWeight:500,cursor:'pointer',fontFamily:'inherit'}}>
             + Athlet hinzufuegen
           </button>
         )}
       </header>
 
       {view==='grid' ? (
-        athletes.length===0 ? (
-          <div style={{textAlign:'center',padding:80,color:'#aaa'}}>
-            <CitroenLogo size={80}/>
-            <p style={{marginTop:16,fontSize:14}}>Noch keine Athleten.<br/>Klick auf Athlet hinzufuegen.</p>
+        <>
+          <div style={{padding:'20px 24px 16px',borderBottom:'1px solid #f0f0f0',flexShrink:0}}>
+            <div style={{fontSize:11,color:'#aaa',textTransform:'uppercase',letterSpacing:'0.14em',marginBottom:4}}>Citroen · Road to LA28</div>
+            <div style={{fontSize:26,fontWeight:700,color:'#1a1a1a',letterSpacing:'-0.02em'}}>Athlete Squad</div>
           </div>
-        ) : (
-          <div style={{display:'flex',gap:0,padding:'0 16px',overflowX:'auto',alignItems:'flex-start',minHeight:'calc(100vh - 70px)'}}>
-            {CAT_ORDER.map((k,colIdx)=>{
-              const c=CATS[k], list=grouped[k]
-              return (
-                <div key={k} style={{flex:'0 0 280px',minWidth:260,borderRight:colIdx<CAT_ORDER.length-1?'1px solid #f0f0f0':'none',padding:'0 12px'}}>
-                  <div style={{position:'sticky',top:70,background:'#fff',zIndex:5,paddingTop:20,paddingBottom:14,borderBottom:`3px solid ${c.color}`,marginBottom:16}}>
-                    <div style={{fontSize:13,fontWeight:700,color:c.color,textTransform:'uppercase',letterSpacing:'0.08em',textAlign:'center'}}>{c.label}</div>
-                    <div style={{fontSize:11,color:'#aaa',textAlign:'center',marginTop:3}}>{list.length} {list.length===1?'Athlet':'Athleten'}</div>
-                  </div>
-                  <div style={{display:'flex',flexDirection:'column',gap:14,paddingBottom:32}}>
-                    {list.map((a,idx)=>(
-                      <div key={a.id} style={{position:'relative'}}>
-                        <div style={{position:'absolute',top:8,right:8,zIndex:2,width:24,height:24,borderRadius:'50%',background:c.color,color:'#fff',fontSize:11,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 2px 6px rgba(0,0,0,0.2)'}}>
-                          {idx+1}
+          {athletes.length===0 ? (
+            <div style={{textAlign:'center',padding:80,color:'#aaa',flex:1}}>
+              <p style={{fontSize:14}}>Noch keine Athleten. Klick auf Athlet hinzufuegen.</p>
+            </div>
+          ) : (
+            <div style={{display:'flex',flex:1,overflow:'hidden'}}>
+              {CAT_ORDER.map((k,colIdx)=>{
+                const c=CATS[k], list=grouped[k]
+                return (
+                  <div key={k} style={{flex:'1 1 0',borderRight:colIdx<CAT_ORDER.length-1?'1px solid #f0f0f0':'none',display:'flex',flexDirection:'column',overflow:'hidden',minWidth:0}}>
+                    <div style={{padding:'14px 12px 12px',borderBottom:`3px solid ${c.color}`,background:'#fff',flexShrink:0}}>
+                      <div style={{fontSize:12,fontWeight:700,color:c.color,textTransform:'uppercase',letterSpacing:'0.08em',textAlign:'center'}}>{c.label}</div>
+                      <div style={{fontSize:11,color:'#aaa',textAlign:'center',marginTop:3}}>{list.length} {list.length===1?'Athlet':'Athleten'}</div>
+                    </div>
+                    <div style={{flex:1,overflowY:'auto',padding:'12px 10px',display:'flex',flexDirection:'column',gap:12}}>
+                      {list.map((a,idx)=>(
+                        <div key={a.id} style={{position:'relative',flexShrink:0}}>
+                          <div style={{position:'absolute',top:6,right:6,zIndex:2,width:22,height:22,borderRadius:'50%',background:c.color,color:'#fff',fontSize:11,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 2px 6px rgba(0,0,0,0.2)'}}>
+                            {idx+1}
+                          </div>
+                          <AthleteCard athlete={a} onClick={()=>openEdit(a)}/>
                         </div>
-                        <AthleteCard athlete={a} onClick={()=>openEdit(a)}/>
-                      </div>
-                    ))}
-                    {list.length===0 && (
-                      <div style={{textAlign:'center',padding:'40px 16px',color:'#ccc',fontSize:12,border:'1px dashed #e2e2e2',borderRadius:10}}>
-                        Noch kein Athlet
-                      </div>
-                    )}
+                      ))}
+                      {list.length===0 && (
+                        <div style={{textAlign:'center',padding:'40px 16px',color:'#ccc',fontSize:12,border:'1px dashed #e2e2e2'}}>
+                          Noch kein Athlet
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )
-            })}
-          </div>
-        )
+                )
+              })}
+            </div>
+          )}
+        </>
       ) : editData ? (
         <EditView data={editData} isNew={!athletes.find(a=>a.id===editData.id)} onSave={handleSave} onDelete={handleDelete} onBack={goBack}/>
       ) : null}
