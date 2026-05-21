@@ -18,11 +18,12 @@ interface Athlete {
 }
 
 const RED = '#DA291C'
+const CAT_ORDER = ['hero','medal','para','inspiring','rising'] as const
 const CATS: Record<string, { label: string; abbr: string; color: string }> = {
   hero:      { label: 'Hero Ambassador',  abbr: 'HERO',    color: '#DA291C' },
   medal:     { label: 'Medal Candidate',  abbr: 'MEDAL',   color: '#B8860B' },
-  inspiring: { label: 'Inspiring Hero',   abbr: 'INSPIRE', color: '#6B21A8' },
   para:      { label: 'Paralympic Star',  abbr: 'PARA',    color: '#185FA5' },
+  inspiring: { label: 'Inspiring Hero',   abbr: 'INSPIRE', color: '#6B21A8' },
   rising:    { label: 'Rising Star',      abbr: 'RISING',  color: '#0F7E45' },
 }
 
@@ -72,13 +73,11 @@ function initials(name: string) {
   return (name||'?').split(' ').map((w:string)=>w[0]||'').slice(0,2).join('').toUpperCase()
 }
 function fmtCost(v: string) {
-  const n = Number(v)
-  if (!n) return '--'
+  const n = Number(v); if (!n) return '--'
   return 'EUR ' + n.toLocaleString('de-DE')
 }
 function fmtReach(v: string) {
-  const n = Number(v)
-  if (!n) return '0'
+  const n = Number(v); if (!n) return '0'
   if (n >= 1000000) return (n/1000000).toFixed(1)+'M'
   if (n >= 1000) return Math.round(n/1000)+'k'
   return String(n)
@@ -98,8 +97,7 @@ function computeReachScore(n: number): number {
   return 10
 }
 function computeCostScore(v: string): number {
-  const n=Number(v)||0
-  if (n<=0) return 5
+  const n=Number(v)||0; if (n<=0) return 5
   const t: [number,number][] = [[0,10],[25000,9],[75000,8],[150000,7],[250000,6],[400000,5],[600000,4],[1000000,2],[2000000,1]]
   for (let i=1;i<t.length;i++) {
     if (n<=t[i][0]) {
@@ -230,15 +228,13 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
   const computed = getComputed(form)
   const cat = autoAssign(form.scores, computed)
   const info = CATS[cat]
-  const ini = initials(form.name)
   const pos = form.image_position ?? 50
 
   const updateScore = (key: string, val: number) => setForm(f=>({...f,scores:{...f.scores,[key]:val}}))
   const updateField = (field: keyof Athlete, val: string) => setForm(f=>({...f,[field]:val}))
 
   const handleImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+    const file = e.target.files?.[0]; if (!file) return
     setUploading(true)
     const b64 = await compressImage(file)
     setForm(f=>({...f,image:b64,image_position:50}))
@@ -268,8 +264,8 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
         </div>
         <div style={{fontSize:11,color:'#888',marginLeft:8}}>Score {catAvg(form.scores,cat,computed).toFixed(2)}</div>
         <div style={{display:'flex',gap:5,alignItems:'flex-end',marginLeft:'auto'}}>
-          {Object.entries(CATS).map(([k,c])=>{
-            const s=catAvg(form.scores,k,computed), isM=k===cat
+          {CAT_ORDER.map(k=>{
+            const c=CATS[k], s=catAvg(form.scores,k,computed), isM=k===cat
             return (
               <div key={k} title={`${c.label}: ${s.toFixed(2)}`} style={{width:22,display:'flex',flexDirection:'column-reverse',borderRadius:3,overflow:'hidden',height:28,background:'#e2e2e2',border:`1px solid ${isM?c.color:'transparent'}`}}>
                 <div style={{width:'100%',height:`${(s/10*100).toFixed(0)}%`,background:isM?c.color:'#c0c0c0',transition:'height 0.2s'}}/>
@@ -297,9 +293,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
               <label style={{fontSize:11,color:'#888'}}>Bildposition (oben bis unten)</label>
               <span style={{fontSize:11,color:'#888'}}>{pos}%</span>
             </div>
-            <input type="range" min="0" max="100" step="1" value={pos}
-              onChange={e=>setForm(f=>({...f,image_position:Number(e.target.value)}))}
-              style={{width:'100%',accentColor:RED}}/>
+            <input type="range" min="0" max="100" step="1" value={pos} onChange={e=>setForm(f=>({...f,image_position:Number(e.target.value)}))} style={{width:'100%',accentColor:RED}}/>
             <div style={{display:'flex',justifyContent:'space-between',fontSize:10,color:'#bbb',marginTop:2}}>
               <span>Oben</span><span>Unten</span>
             </div>
@@ -364,8 +358,8 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
         Scoring-Kriterien
       </div>
 
-      {Object.entries(CATS).map(([k,c])=>{
-        const isM=k===cat, avg=catAvg(form.scores,k,computed)
+      {CAT_ORDER.map(k=>{
+        const c=CATS[k], isM=k===cat, avg=catAvg(form.scores,k,computed)
         return (
           <div key={k} style={{marginBottom:20}}>
             <div style={{display:'flex',alignItems:'center',gap:8,paddingBottom:7,marginBottom:10,borderBottom:`1.5px solid ${isM?c.color:'#e2e2e2'}`}}>
@@ -457,6 +451,16 @@ export default function Home() {
 
   if (!loaded) return <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',color:'#888'}}>Lade...</div>
 
+  // Group and sort athletes by category
+  const grouped: Record<string, Athlete[]> = { hero:[], medal:[], para:[], inspiring:[], rising:[] }
+  for (const a of athletes) {
+    const cat = autoAssign(a.scores, getComputed(a))
+    if (grouped[cat]) grouped[cat].push(a)
+  }
+  for (const k of CAT_ORDER) {
+    grouped[k].sort((a,b)=>catAvg(b.scores,k,getComputed(b))-catAvg(a.scores,k,getComputed(a)))
+  }
+
   return (
     <div style={{minHeight:'100vh',background:'#fff'}}>
       <header style={{display:'flex',alignItems:'center',gap:12,padding:'0 24px',height:70,borderBottom:`2.5px solid ${RED}`,background:'#fff',position:'sticky',top:0,zIndex:10}}>
@@ -476,18 +480,45 @@ export default function Home() {
         )}
       </header>
 
-      {view==='grid'?(
-        <div style={{padding:'20px 24px',display:'grid',gridTemplateColumns:'repeat(auto-fill, minmax(280px, 1fr))',gap:14}}>
-          {athletes.length===0?(
-            <div style={{gridColumn:'1/-1',textAlign:'center',padding:80,color:'#aaa'}}>
-              <CitroenLogo size={80}/>
-              <p style={{marginTop:16,fontSize:14}}>Noch keine Athleten.<br/>Klick auf Athlet hinzufuegen.</p>
-            </div>
-          ):athletes.map(a=><AthleteCard key={a.id} athlete={a} onClick={()=>openEdit(a)}/>)}
-        </div>
-      ):editData?(
+      {view==='grid' ? (
+        athletes.length===0 ? (
+          <div style={{textAlign:'center',padding:80,color:'#aaa'}}>
+            <CitroenLogo size={80}/>
+            <p style={{marginTop:16,fontSize:14}}>Noch keine Athleten.<br/>Klick auf Athlet hinzufuegen.</p>
+          </div>
+        ) : (
+          <div style={{display:'flex',gap:0,padding:'0 16px',overflowX:'auto',alignItems:'flex-start',minHeight:'calc(100vh - 70px)'}}>
+            {CAT_ORDER.map((k,colIdx)=>{
+              const c=CATS[k], list=grouped[k]
+              return (
+                <div key={k} style={{flex:'0 0 280px',minWidth:260,borderRight:colIdx<CAT_ORDER.length-1?'1px solid #f0f0f0':'none',padding:'0 12px'}}>
+                  <div style={{position:'sticky',top:70,background:'#fff',zIndex:5,paddingTop:20,paddingBottom:14,borderBottom:`3px solid ${c.color}`,marginBottom:16}}>
+                    <div style={{fontSize:13,fontWeight:700,color:c.color,textTransform:'uppercase',letterSpacing:'0.08em',textAlign:'center'}}>{c.label}</div>
+                    <div style={{fontSize:11,color:'#aaa',textAlign:'center',marginTop:3}}>{list.length} {list.length===1?'Athlet':'Athleten'}</div>
+                  </div>
+                  <div style={{display:'flex',flexDirection:'column',gap:14,paddingBottom:32}}>
+                    {list.map((a,idx)=>(
+                      <div key={a.id} style={{position:'relative'}}>
+                        <div style={{position:'absolute',top:8,right:8,zIndex:2,width:24,height:24,borderRadius:'50%',background:c.color,color:'#fff',fontSize:11,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 2px 6px rgba(0,0,0,0.2)'}}>
+                          {idx+1}
+                        </div>
+                        <AthleteCard athlete={a} onClick={()=>openEdit(a)}/>
+                      </div>
+                    ))}
+                    {list.length===0 && (
+                      <div style={{textAlign:'center',padding:'40px 16px',color:'#ccc',fontSize:12,border:'1px dashed #e2e2e2',borderRadius:10}}>
+                        Noch kein Athlet
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )
+      ) : editData ? (
         <EditView data={editData} isNew={!athletes.find(a=>a.id===editData.id)} onSave={handleSave} onDelete={handleDelete} onBack={goBack}/>
-      ):null}
+      ) : null}
     </div>
   )
 }
