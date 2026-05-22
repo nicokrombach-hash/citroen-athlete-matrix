@@ -27,26 +27,31 @@ const CATS: Record<string, { label: string; abbr: string; color: string }> = {
   rising:    { label: 'Rising Star',      abbr: 'RISING',  color: '#0F7E45' },
 }
 
+// General criteria – apply to ALL categories equally
+const GENERAL_CRIT = [
+  { key: 'strategy_fit',      label: 'Strategie Fit',              w: 1.0, hint: 'Passt zur Citroen-Markenstrategie',  checkbox: false },
+  { key: 'good_to_work',      label: 'Good to work with',          w: 1.0, hint: 'Zusammenarbeit, Zuverlaessigkeit',   checkbox: false },
+  { key: 'social_competence', label: 'Soziale Kompetenz / Events', w: 1.0, hint: 'Ausstrahlung bei Events und Umgang', checkbox: false },
+]
+
+// Category-specific criteria
 const CRIT = [
-  { key: 'brand_match',          label: 'Markenwerte-Match',          cat: 'hero',      w: 1.5, hint: 'Passt der Athlet zu Citroens Werten?', checkbox: false },
-  { key: 'recognition',          label: 'Wiedererkennungswert',       cat: 'hero',      w: 1.5, hint: 'Bekanntheit in D und international',   checkbox: false },
-  { key: 'reach',                label: 'Strahlkraft Reichweite',     cat: 'hero',      w: 1.0, hint: 'Qualitative Strahlkraft',              checkbox: false },
-  { key: 'strategy_fit',         label: 'Strategie Fit',              cat: 'hero',      w: 1.0, hint: 'Passt zur Citroen-Markenstrategie',    checkbox: false },
-  { key: 'good_to_work',         label: 'Good to work with',          cat: 'hero',      w: 1.0, hint: 'Zusammenarbeit, Zuverlaessigkeit',     checkbox: false },
-  { key: 'medal_chance',         label: 'Medaillenchance LA28',        cat: 'medal',     w: 2.0, hint: 'Wie realistisch ist eine Medaille?',   checkbox: false },
-  { key: 'track_record',         label: 'Int. Track Record',          cat: 'medal',     w: 1.5, hint: 'Internationale Erfolge',              checkbox: false },
-  { key: 'consistency',          label: 'Wettkampf-Konstanz',         cat: 'medal',     w: 1.0, hint: 'Stabile Performance unter Druck',     checkbox: false },
-  { key: 'olympic_participation', label: 'Olympia-Teilnahme',         cat: 'medal',     w: 1.5, hint: 'Bereits bei Olympia dabei?',           checkbox: true  },
-  { key: 'story_depth',          label: 'Emotionale Story-Tiefe',     cat: 'inspiring', w: 1.5, hint: 'Tiefe der persoenlichen Geschichte',   checkbox: false },
-  { key: 'resilience',           label: 'Comeback Resilience',        cat: 'inspiring', w: 1.5, hint: 'Ueberwindung von Rueckschlaegen',      checkbox: false },
-  { key: 'authenticity',         label: 'Authentizitaet',             cat: 'inspiring', w: 1.0, hint: 'Glaubwuerdigkeit der Story',           checkbox: false },
-  { key: 'social_competence',    label: 'Soziale Kompetenz / Events', cat: 'inspiring', w: 1.0, hint: 'Ausstrahlung bei Events, Umgang',      checkbox: false },
-  { key: 'para_profile',         label: 'Para-Profil Sichtbarkeit',   cat: 'para',      w: 1.5, hint: 'Bekanntheit im Para-Sport',            checkbox: false },
-  { key: 'para_medals',          label: 'Medaillen-Potenzial Para',   cat: 'para',      w: 2.0, hint: 'Para-Medaillenchance',                 checkbox: false },
-  { key: 'inclusion',            label: 'Inklusions-Statement',       cat: 'para',      w: 1.0, hint: 'Kraft als Inklusionsbotschafter',      checkbox: false },
-  { key: 'breakout',             label: 'Breakout-Potenzial',         cat: 'rising',    w: 1.5, hint: 'Potenzial zum naechsten grossen Namen', checkbox: false },
-  { key: 'youth_appeal',         label: 'Junge Zielgruppe 16-30',     cat: 'rising',    w: 1.0, hint: 'Relevanz fuer junge Fans',             checkbox: false },
-  { key: 'engagement',           label: 'Content-Qualitaet',          cat: 'rising',    w: 1.5, hint: 'Qualitaet des Social-Contents',        checkbox: false },
+  { key: 'brand_match',          label: 'Markenwerte-Match',        cat: 'hero',      w: 1.5, hint: 'Passt der Athlet zu Citroens Werten?', checkbox: false },
+  { key: 'recognition',          label: 'Wiedererkennungswert',     cat: 'hero',      w: 1.5, hint: 'Bekanntheit in D und international',   checkbox: false },
+  { key: 'reach',                label: 'Strahlkraft Reichweite',   cat: 'hero',      w: 1.0, hint: 'Qualitative Strahlkraft',              checkbox: false },
+  { key: 'medal_chance',         label: 'Medaillenchance LA28',      cat: 'medal',     w: 2.0, hint: 'Wie realistisch ist eine Medaille?',   checkbox: false },
+  { key: 'track_record',         label: 'Int. Track Record',        cat: 'medal',     w: 1.5, hint: 'Internationale Erfolge',              checkbox: false },
+  { key: 'consistency',          label: 'Wettkampf-Konstanz',       cat: 'medal',     w: 1.0, hint: 'Stabile Performance unter Druck',     checkbox: false },
+  { key: 'olympic_participation', label: 'Olympia-Teilnahme',       cat: 'medal',     w: 1.5, hint: 'Bereits bei Olympia dabei?',           checkbox: true  },
+  { key: 'story_depth',          label: 'Emotionale Story-Tiefe',   cat: 'inspiring', w: 1.5, hint: 'Tiefe der persoenlichen Geschichte',   checkbox: false },
+  { key: 'resilience',           label: 'Comeback Resilience',      cat: 'inspiring', w: 1.5, hint: 'Ueberwindung von Rueckschlaegen',      checkbox: false },
+  { key: 'authenticity',         label: 'Authentizitaet',           cat: 'inspiring', w: 1.0, hint: 'Glaubwuerdigkeit der Story',           checkbox: false },
+  { key: 'para_profile',         label: 'Para-Profil Sichtbarkeit', cat: 'para',      w: 1.5, hint: 'Bekanntheit im Para-Sport',            checkbox: false },
+  { key: 'para_medals',          label: 'Medaillen-Potenzial Para', cat: 'para',      w: 2.0, hint: 'Para-Medaillenchance',                 checkbox: false },
+  { key: 'inclusion',            label: 'Inklusions-Statement',      cat: 'para',      w: 1.0, hint: 'Kraft als Inklusionsbotschafter',      checkbox: false },
+  { key: 'breakout',             label: 'Breakout-Potenzial',        cat: 'rising',    w: 1.5, hint: 'Potenzial zum naechsten grossen Namen', checkbox: false },
+  { key: 'youth_appeal',         label: 'Junge Zielgruppe 16-30',   cat: 'rising',    w: 1.0, hint: 'Relevanz fuer junge Fans',             checkbox: false },
+  { key: 'engagement',           label: 'Content-Qualitaet',        cat: 'rising',    w: 1.5, hint: 'Qualitaet des Social-Contents',        checkbox: false },
 ]
 
 const COMP = [
@@ -119,8 +124,12 @@ function getComputed(a: Athlete) {
 }
 function catAvg(scores: Scores, cat: string, computed: Record<string,number>): number {
   let s=0, w=0
+  // category-specific
   for (const c of BY_CAT[cat]) { s+=(scores[c.key]??5)*c.w; w+=c.w }
+  // computed
   for (const c of BY_COMP[cat]) { s+=(computed[c.key]??5)*c.w; w+=c.w }
+  // general criteria – same weight for all categories
+  for (const c of GENERAL_CRIT) { s+=(scores[c.key]??5)*c.w; w+=c.w }
   return s/w
 }
 function autoAssign(scores: Scores, computed: Record<string,number>): string {
@@ -128,7 +137,12 @@ function autoAssign(scores: Scores, computed: Record<string,number>): string {
   for (const k of Object.keys(CATS)) { const s=catAvg(scores,k,computed); if(s>bs){bs=s;best=k} }
   return best
 }
-function blankScores(): Scores { return Object.fromEntries(CRIT.map(c=>[c.key, c.checkbox ? 1 : 5])) }
+function blankScores(): Scores {
+  const s: Scores = {}
+  for (const c of CRIT) s[c.key] = c.checkbox ? 1 : 5
+  for (const c of GENERAL_CRIT) s[c.key] = 5
+  return s
+}
 function blankAthlete(id: number): Athlete {
   return { id, name:'', sport:'', image:null, image_position:15, cost:'', reach_insta:'', reach_tiktok:'', reach_youtube:'', scores:blankScores() }
 }
@@ -177,7 +191,7 @@ function AthleteCard({ athlete, onClick }: { athlete: Athlete; onClick: () => vo
 
   return (
     <div onClick={onClick}
-      style={{ background:'#fff', border:`1px solid #e8e8e8`, borderRadius:12, overflow:'hidden', cursor:'pointer', transition:'box-shadow 0.15s', boxShadow:'0 1px 4px rgba(0,0,0,0.06)' }}
+      style={{ background:'#fff', border:'1px solid #e8e8e8', borderRadius:12, overflow:'hidden', cursor:'pointer', transition:'box-shadow 0.15s', boxShadow:'0 1px 4px rgba(0,0,0,0.06)' }}
       onMouseEnter={e=>{(e.currentTarget as HTMLDivElement).style.boxShadow=`0 6px 20px ${rgba(info.color,0.15)}`}}
       onMouseLeave={e=>{(e.currentTarget as HTMLDivElement).style.boxShadow='0 1px 4px rgba(0,0,0,0.06)'}}
     >
@@ -188,8 +202,8 @@ function AthleteCard({ athlete, onClick }: { athlete: Athlete; onClick: () => vo
           : <div style={{width:80,height:80,borderRadius:'50%',background:rgba(info.color,0.15),color:info.color,display:'flex',alignItems:'center',justifyContent:'center',fontSize:28,fontWeight:500}}>{ini}</div>
         }
         <div style={{position:'absolute',top:8,left:8,display:'flex',gap:4,flexWrap:'wrap'}}>
-          <div style={{display:'inline-block',fontSize:10,fontWeight:500,padding:'3px 8px',borderRadius:20,background:'rgba(255,255,255,0.93)',color:info.color}}>{info.label}</div>
-          {isOlympian && <div style={{display:'inline-block',fontSize:10,fontWeight:600,padding:'3px 8px',borderRadius:20,background:'rgba(255,255,255,0.93)',color:'#B8860B'}}>🏅 Olympia</div>}
+          <div style={{fontSize:10,fontWeight:500,padding:'3px 8px',borderRadius:20,background:'rgba(255,255,255,0.93)',color:info.color}}>{info.label}</div>
+          {isOlympian && <div style={{fontSize:10,fontWeight:600,padding:'3px 8px',borderRadius:20,background:'rgba(255,255,255,0.93)',color:'#B8860B'}}>🏅 Olympia</div>}
         </div>
       </div>
       <div style={{padding:'12px 14px'}}>
@@ -263,6 +277,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
         ← Zurueck zur Uebersicht
       </button>
 
+      {/* Auto-category banner */}
       <div style={{background:rgba(info.color,0.07),border:`1px solid ${rgba(info.color,0.2)}`,borderRadius:12,padding:'12px 16px',marginBottom:20,display:'flex',alignItems:'center',gap:10}}>
         <div>
           <div style={{fontSize:10,color:'#888',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:2}}>Kategorie (auto):</div>
@@ -281,17 +296,14 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
         </div>
       </div>
 
+      {/* Photo */}
       <div style={{marginBottom:20}}>
         <div style={{width:'100%',height:260,borderRadius:12,overflow:'hidden',background:rgba(info.color,0.06),border:`1px solid ${rgba(info.color,0.15)}`,display:'flex',alignItems:'center',justifyContent:'center',position:'relative',marginBottom:10}}>
           {form.image
             ? <img src={form.image} alt={form.name} style={{width:'100%',height:'100%',objectFit:'cover',objectPosition:`center ${pos}%`}}/>
             : <div style={{textAlign:'center',color:'#bbb'}}><div style={{fontSize:48,marginBottom:8}}>👤</div><div style={{fontSize:12}}>Noch kein Foto</div></div>
           }
-          {uploading && (
-            <div style={{position:'absolute',inset:0,background:'rgba(255,255,255,0.85)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,color:'#888'}}>
-              Wird verarbeitet...
-            </div>
-          )}
+          {uploading && <div style={{position:'absolute',inset:0,background:'rgba(255,255,255,0.85)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,color:'#888'}}>Wird verarbeitet...</div>}
         </div>
         {form.image && (
           <div style={{marginBottom:10,padding:'10px 14px',background:'#f8f8f8',borderRadius:10,border:'1px solid #ececec'}}>
@@ -314,6 +326,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
         </div>
       </div>
 
+      {/* Name + Sport */}
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:16}}>
         <div>
           <label style={{display:'block',fontSize:11,color:'#888',marginBottom:4}}>Name *</label>
@@ -325,7 +338,8 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
         </div>
       </div>
 
-      <div style={{marginBottom:24,padding:'14px 16px',background:'#f8f8f8',borderRadius:12,border:'1px solid #ececec'}}>
+      {/* Cost + Social */}
+      <div style={{marginBottom:20,padding:'14px 16px',background:'#f8f8f8',borderRadius:12,border:'1px solid #ececec'}}>
         <div style={{marginBottom:14}}>
           <label style={{display:'block',fontSize:11,color:'#888',marginBottom:4}}>Kosten / Jahr (EUR)</label>
           <input type="number" min="0" step="1000" value={form.cost} onChange={e=>updateField('cost',e.target.value)} placeholder="z. B. 150000" style={inp}/>
@@ -360,8 +374,27 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
         </div>
       </div>
 
-      <div style={{fontSize:10,fontWeight:600,color:'#888',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:14,paddingBottom:6,borderBottom:'1px solid #ececec'}}>
-        Scoring-Kriterien
+      {/* GENERAL CRITERIA */}
+      <div style={{marginBottom:24,padding:'14px 16px',background:'#f0f4ff',borderRadius:12,border:'1px solid #dde5ff'}}>
+        <div style={{fontSize:10,fontWeight:700,color:'#4466cc',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:14}}>
+          Allgemeine Bewertung · fliesst in alle Kategorien ein
+        </div>
+        {GENERAL_CRIT.map(cr=>(
+          <div key={cr.key} style={{marginBottom:12}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}}>
+              <label style={{fontSize:12,fontWeight:500,color:'#1a1a1a'}} title={cr.hint}>
+                {cr.label} <span style={{fontSize:10,color:'#aab'}}>x{cr.w}</span>
+              </label>
+              <span style={{fontSize:12,fontWeight:600,color:'#4466cc',minWidth:16,textAlign:'right'}}>{form.scores[cr.key]??5}</span>
+            </div>
+            <input type="range" min="1" max="10" step="1" value={form.scores[cr.key]??5} onChange={e=>updateScore(cr.key,Number(e.target.value))} style={{width:'100%',accentColor:'#4466cc'}}/>
+          </div>
+        ))}
+      </div>
+
+      {/* CATEGORY SCORING */}
+      <div style={{fontSize:10,fontWeight:700,color:'#888',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:14,paddingBottom:6,borderBottom:'1px solid #ececec'}}>
+        Kategorie-Kriterien
       </div>
 
       {CAT_ORDER.map(k=>{
@@ -381,10 +414,8 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
                       <div style={{fontSize:12,fontWeight:500,color:'#1a1a1a'}}>{cr.label}</div>
                       <div style={{fontSize:10,color:'#aaa',marginTop:1}}>{cr.hint} · x{cr.w}</div>
                     </div>
-                    <div
-                      onClick={()=>updateScore(cr.key,(form.scores[cr.key]??1)>=10?1:10)}
-                      style={{width:44,height:24,borderRadius:12,background:(form.scores[cr.key]??1)>=10?c.color:'#ddd',cursor:'pointer',position:'relative',transition:'background 0.2s',flexShrink:0}}
-                    >
+                    <div onClick={()=>updateScore(cr.key,(form.scores[cr.key]??1)>=10?1:10)}
+                      style={{width:44,height:24,borderRadius:12,background:(form.scores[cr.key]??1)>=10?c.color:'#ddd',cursor:'pointer',position:'relative',transition:'background 0.2s',flexShrink:0}}>
                       <div style={{position:'absolute',top:2,left:(form.scores[cr.key]??1)>=10?20:2,width:20,height:20,borderRadius:'50%',background:'#fff',transition:'left 0.2s',boxShadow:'0 1px 3px rgba(0,0,0,0.2)'}}/>
                     </div>
                   </div>
