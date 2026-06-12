@@ -17,6 +17,7 @@ interface Athlete {
   reach_youtube: string
   comments: string
   presse_storys: PressStory[]
+  para_locked: boolean
   scores: Scores
 }
 
@@ -44,14 +45,14 @@ const CRIT = [
   { key: 'medal_chance',          label: 'Medaillenchance LA28',      cat: 'medal',     w: 2.0, hint: 'Wie realistisch ist eine Medaille?',   checkbox: false },
   { key: 'track_record',          label: 'Int. Track Record',        cat: 'medal',     w: 1.5, hint: 'Internationale Erfolge',              checkbox: false },
   { key: 'consistency',           label: 'Wettkampf-Konstanz',       cat: 'medal',     w: 1.0, hint: 'Stabile Performance unter Druck',     checkbox: false },
-  { key: 'olympic_participation',  label: 'Olympia-Teilnahme',       cat: 'medal',     w: 1.5, hint: 'Bereits bei Olympia dabei?',           checkbox: true  },
+  { key: 'olympic_participation', label: 'Olympia-Teilnahme',        cat: 'medal',     w: 1.5, hint: 'Bereits bei Olympia dabei?',           checkbox: true  },
   { key: 'story_depth',           label: 'Emotionale Story-Tiefe',   cat: 'inspiring', w: 1.5, hint: 'Tiefe der persoenlichen Geschichte',   checkbox: false },
   { key: 'resilience',            label: 'Comeback Resilience',      cat: 'inspiring', w: 1.5, hint: 'Ueberwindung von Rueckschlaegen',      checkbox: false },
   { key: 'authenticity',          label: 'Authentizitaet',           cat: 'inspiring', w: 1.0, hint: 'Glaubwuerdigkeit der Story',           checkbox: false },
   { key: 'para_profile',          label: 'Para-Profil Sichtbarkeit', cat: 'para',      w: 1.5, hint: 'Bekanntheit im Para-Sport',            checkbox: false },
   { key: 'para_medals',           label: 'Medaillen-Potenzial Para', cat: 'para',      w: 2.0, hint: 'Para-Medaillenchance',                 checkbox: false },
-  { key: 'inclusion',             label: 'Inklusions-Statement',      cat: 'para',      w: 1.0, hint: 'Kraft als Inklusionsbotschafter',      checkbox: false },
-  { key: 'breakout',              label: 'Breakout-Potenzial',        cat: 'rising',    w: 1.5, hint: 'Potenzial zum naechsten grossen Namen', checkbox: false },
+  { key: 'inclusion',             label: 'Inklusions-Statement',     cat: 'para',      w: 1.0, hint: 'Kraft als Inklusionsbotschafter',      checkbox: false },
+  { key: 'breakout',              label: 'Breakout-Potenzial',       cat: 'rising',    w: 1.5, hint: 'Potenzial zum naechsten grossen Namen', checkbox: false },
   { key: 'youth_appeal',          label: 'Junge Zielgruppe 16-30',   cat: 'rising',    w: 1.0, hint: 'Relevanz fuer junge Fans',             checkbox: false },
   { key: 'engagement',            label: 'Content-Qualitaet',        cat: 'rising',    w: 1.5, hint: 'Qualitaet des Social-Contents',        checkbox: false },
 ]
@@ -131,9 +132,13 @@ function catAvg(scores: Scores, cat: string, computed: Record<string,number>): n
   for (const c of GENERAL_CRIT) { s+=(scores[c.key]??5)*c.w; w+=c.w }
   return s/w
 }
-function autoAssign(scores: Scores, computed: Record<string,number>): string {
+function autoAssign(a: Athlete, computed: Record<string,number>): string {
+  if (a.para_locked) return 'para'
   let best='hero', bs=-1
-  for (const k of Object.keys(CATS)) { const s=catAvg(scores,k,computed); if(s>bs){bs=s;best=k} }
+  for (const k of Object.keys(CATS)) {
+    const s=catAvg(a.scores,k,computed)
+    if(s>bs){bs=s;best=k}
+  }
   return best
 }
 function blankScores(): Scores {
@@ -143,7 +148,7 @@ function blankScores(): Scores {
   return s
 }
 function blankAthlete(id: number): Athlete {
-  return { id, name:'', sport:'', image:null, image_position:15, cost:'', reach_insta:'', reach_tiktok:'', reach_youtube:'', comments:'', presse_storys:[], scores:blankScores() }
+  return { id, name:'', sport:'', image:null, image_position:15, cost:'', reach_insta:'', reach_tiktok:'', reach_youtube:'', comments:'', presse_storys:[], para_locked:false, scores:blankScores() }
 }
 
 function compressImage(file: File): Promise<string> {
@@ -172,7 +177,7 @@ function CitroenLogo({ size=55 }: { size?: number }) {
 
 function AthleteCard({ athlete, onClick }: { athlete: Athlete; onClick: () => void }) {
   const computed = getComputed(athlete)
-  const cat = autoAssign(athlete.scores, computed)
+  const cat = autoAssign(athlete, computed)
   const info = CATS[cat]
   const ini = initials(athlete.name)
   const pos = athlete.image_position ?? 15
@@ -195,6 +200,7 @@ function AthleteCard({ athlete, onClick }: { athlete: Athlete; onClick: () => vo
         <div style={{position:'absolute',top:8,left:8,display:'flex',gap:4,flexWrap:'wrap'}}>
           <div style={{fontSize:10,fontWeight:500,padding:'3px 8px',borderRadius:20,background:'rgba(255,255,255,0.93)',color:info.color}}>{info.label}</div>
           {isOlympian && <div style={{fontSize:10,fontWeight:600,padding:'3px 8px',borderRadius:20,background:'rgba(255,255,255,0.93)',color:'#B8860B'}}>🏅 Olympia</div>}
+          {athlete.para_locked && <div style={{fontSize:10,fontWeight:600,padding:'3px 8px',borderRadius:20,background:'rgba(255,255,255,0.93)',color:'#185FA5'}}>♿ Para</div>}
         </div>
         {(athlete.presse_storys?.length > 0) && (
           <div style={{position:'absolute',bottom:8,right:8,fontSize:10,fontWeight:600,padding:'3px 8px',borderRadius:20,background:'rgba(255,255,255,0.93)',color:'#555'}}>📰 {athlete.presse_storys.length}</div>
@@ -241,13 +247,13 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
   onSave: (a: Athlete) => Promise<void>
   onDelete: () => void; onBack: () => void
 }) {
-  const [form, setForm] = useState<Athlete>({comments:'',presse_storys:[],...data,scores:{...data.scores}})
+  const [form, setForm] = useState<Athlete>({comments:'',presse_storys:[],para_locked:false,...data,scores:{...data.scores}})
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [newStory, setNewStory] = useState({url:'',text:''})
 
   const computed = getComputed(form)
-  const cat = autoAssign(form.scores, computed)
+  const cat = autoAssign(form, computed)
   const info = CATS[cat]
   const pos = form.image_position ?? 15
 
@@ -286,11 +292,23 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
         ← Zurueck zur Uebersicht
       </button>
 
+      {/* Para Lock Banner */}
+      <div style={{marginBottom:16,padding:'12px 16px',background:form.para_locked?'#e8f0fe':'#f8f8f8',borderRadius:12,border:`1px solid ${form.para_locked?'#185FA5':'#e2e2e2'}`,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+        <div>
+          <div style={{fontSize:13,fontWeight:600,color:form.para_locked?'#185FA5':'#888'}}>♿ Paralympic Athlet</div>
+          <div style={{fontSize:11,color:'#aaa',marginTop:2}}>Wenn aktiv, bleibt der Athlet immer in der Paralympic Star Spalte</div>
+        </div>
+        <div onClick={()=>setForm(f=>({...f,para_locked:!f.para_locked}))}
+          style={{width:48,height:26,borderRadius:13,background:form.para_locked?'#185FA5':'#ddd',cursor:'pointer',position:'relative',transition:'background 0.2s',flexShrink:0}}>
+          <div style={{position:'absolute',top:3,left:form.para_locked?22:3,width:20,height:20,borderRadius:'50%',background:'#fff',transition:'left 0.2s',boxShadow:'0 1px 3px rgba(0,0,0,0.2)'}}/>
+        </div>
+      </div>
+
       {/* Category banner */}
       <div style={{background:rgba(info.color,0.07),border:`1px solid ${rgba(info.color,0.2)}`,borderRadius:12,padding:'12px 16px',marginBottom:20,display:'flex',alignItems:'center',gap:10}}>
         <div>
           <div style={{fontSize:10,color:'#888',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:2}}>Kategorie (auto):</div>
-          <div style={{fontSize:15,fontWeight:600,color:info.color}}>{info.label}</div>
+          <div style={{fontSize:15,fontWeight:600,color:info.color}}>{info.label}{form.para_locked?' 🔒':''}</div>
         </div>
         <div style={{fontSize:11,color:'#888',marginLeft:8}}>Score {catAvg(form.scores,cat,computed).toFixed(2)}</div>
         <div style={{display:'flex',gap:5,alignItems:'flex-end',marginLeft:'auto'}}>
@@ -389,7 +407,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
 
       {/* PR Section */}
       <div style={{marginBottom:24,padding:'14px 16px',background:'#fff8f0',borderRadius:12,border:'1px solid #fde8cc'}}>
-        <div style={{fontSize:10,fontWeight:700,color:'#c47800',textTransform:'uppercase' as const,letterSpacing:'0.12em',marginBottom:14,padding:'8px 12px',background:'#fff8f0',borderRadius:8,border:'1px solid #fde8cc'}}>
+        <div style={{fontSize:10,fontWeight:700,color:'#c47800',textTransform:'uppercase' as const,letterSpacing:'0.12em',marginBottom:14}}>
           PR · Presse Stories
         </div>
         {(form.presse_storys||[]).map(story=>(
@@ -415,7 +433,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
 
       {/* General criteria */}
       <div style={{marginBottom:24,padding:'14px 16px',background:'#f0f4ff',borderRadius:12,border:'1px solid #dde5ff'}}>
-        <div style={{fontSize:10,fontWeight:700,color:'#4466cc',textTransform:'uppercase' as const,letterSpacing:'0.12em',marginBottom:14,padding:'8px 12px',background:'#f0f4ff',borderRadius:8,border:'1px solid #dde5ff'}}>
+        <div style={{fontSize:10,fontWeight:700,color:'#4466cc',textTransform:'uppercase' as const,letterSpacing:'0.12em',marginBottom:14}}>
           Allgemeine Bewertung · fliesst in alle Kategorien ein
         </div>
         {GENERAL_CRIT.map(cr=>(
@@ -511,7 +529,7 @@ export default function Home() {
         if (data&&!error) {
           setAthletes(data.map(a=>({
             reach_insta:'',reach_tiktok:'',reach_youtube:'',
-            image_position:15,comments:'',presse_storys:[],...a
+            image_position:15,comments:'',presse_storys:[],para_locked:false,...a
           })))
           setIsLive(true)
         } else setAthletes([])
@@ -522,7 +540,7 @@ export default function Home() {
   },[])
 
   const openAdd = () => { setEditData(blankAthlete(Date.now())); setView('edit') }
-  const openEdit = (a: Athlete) => { setEditData({comments:'',presse_storys:[],...a,scores:{...a.scores}}); setView('edit') }
+  const openEdit = (a: Athlete) => { setEditData({comments:'',presse_storys:[],para_locked:false,...a,scores:{...a.scores}}); setView('edit') }
   const goBack = () => { setView('grid'); setEditData(null) }
 
   const handleSave = async (data: Athlete) => {
@@ -547,7 +565,7 @@ export default function Home() {
 
   const grouped: Record<string, Athlete[]> = {hero:[],medal:[],para:[],inspiring:[],rising:[]}
   for (const a of athletes) {
-    const cat = autoAssign(a.scores, getComputed(a))
+    const cat = autoAssign(a, getComputed(a))
     if (grouped[cat]) grouped[cat].push(a)
   }
   for (const k of CAT_ORDER) {
