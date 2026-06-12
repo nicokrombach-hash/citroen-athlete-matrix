@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 
+interface PressStory { id: string; url: string; text: string }
 interface Scores { [key: string]: number }
 interface Athlete {
   id: number
@@ -14,6 +15,8 @@ interface Athlete {
   reach_insta: string
   reach_tiktok: string
   reach_youtube: string
+  comments: string
+  presse_storys: PressStory[]
   scores: Scores
 }
 
@@ -27,31 +30,30 @@ const CATS: Record<string, { label: string; abbr: string; color: string }> = {
   rising:    { label: 'Rising Star',      abbr: 'RISING',  color: '#0F7E45' },
 }
 
-// General criteria – apply to ALL categories equally
 const GENERAL_CRIT = [
-  { key: 'strategy_fit',      label: 'Strategie Fit',              w: 1.0, hint: 'Passt zur Citroen-Markenstrategie',  checkbox: false },
-  { key: 'good_to_work',      label: 'Good to work with',          w: 1.0, hint: 'Zusammenarbeit, Zuverlaessigkeit',   checkbox: false },
-  { key: 'social_competence', label: 'Soziale Kompetenz / Events', w: 1.0, hint: 'Ausstrahlung bei Events und Umgang', checkbox: false },
+  { key: 'strategy_fit',      label: 'Strategie Fit',              w: 1.0, hint: 'Passt zur Citroen-Markenstrategie' },
+  { key: 'good_to_work',      label: 'Good to work with',          w: 1.0, hint: 'Zusammenarbeit, Zuverlaessigkeit' },
+  { key: 'social_competence', label: 'Soziale Kompetenz / Events', w: 1.0, hint: 'Ausstrahlung bei Events und Umgang' },
+  { key: 'growth_potential',  label: 'Growth Potential',           w: 1.0, hint: 'Langfristiges Wachstumspotenzial' },
 ]
 
-// Category-specific criteria
 const CRIT = [
-  { key: 'brand_match',          label: 'Markenwerte-Match',        cat: 'hero',      w: 1.5, hint: 'Passt der Athlet zu Citroens Werten?', checkbox: false },
-  { key: 'recognition',          label: 'Wiedererkennungswert',     cat: 'hero',      w: 1.5, hint: 'Bekanntheit in D und international',   checkbox: false },
-  { key: 'reach',                label: 'Strahlkraft Reichweite',   cat: 'hero',      w: 1.0, hint: 'Qualitative Strahlkraft',              checkbox: false },
-  { key: 'medal_chance',         label: 'Medaillenchance LA28',      cat: 'medal',     w: 2.0, hint: 'Wie realistisch ist eine Medaille?',   checkbox: false },
-  { key: 'track_record',         label: 'Int. Track Record',        cat: 'medal',     w: 1.5, hint: 'Internationale Erfolge',              checkbox: false },
-  { key: 'consistency',          label: 'Wettkampf-Konstanz',       cat: 'medal',     w: 1.0, hint: 'Stabile Performance unter Druck',     checkbox: false },
-  { key: 'olympic_participation', label: 'Olympia-Teilnahme',       cat: 'medal',     w: 1.5, hint: 'Bereits bei Olympia dabei?',           checkbox: true  },
-  { key: 'story_depth',          label: 'Emotionale Story-Tiefe',   cat: 'inspiring', w: 1.5, hint: 'Tiefe der persoenlichen Geschichte',   checkbox: false },
-  { key: 'resilience',           label: 'Comeback Resilience',      cat: 'inspiring', w: 1.5, hint: 'Ueberwindung von Rueckschlaegen',      checkbox: false },
-  { key: 'authenticity',         label: 'Authentizitaet',           cat: 'inspiring', w: 1.0, hint: 'Glaubwuerdigkeit der Story',           checkbox: false },
-  { key: 'para_profile',         label: 'Para-Profil Sichtbarkeit', cat: 'para',      w: 1.5, hint: 'Bekanntheit im Para-Sport',            checkbox: false },
-  { key: 'para_medals',          label: 'Medaillen-Potenzial Para', cat: 'para',      w: 2.0, hint: 'Para-Medaillenchance',                 checkbox: false },
-  { key: 'inclusion',            label: 'Inklusions-Statement',      cat: 'para',      w: 1.0, hint: 'Kraft als Inklusionsbotschafter',      checkbox: false },
-  { key: 'breakout',             label: 'Breakout-Potenzial',        cat: 'rising',    w: 1.5, hint: 'Potenzial zum naechsten grossen Namen', checkbox: false },
-  { key: 'youth_appeal',         label: 'Junge Zielgruppe 16-30',   cat: 'rising',    w: 1.0, hint: 'Relevanz fuer junge Fans',             checkbox: false },
-  { key: 'engagement',           label: 'Content-Qualitaet',        cat: 'rising',    w: 1.5, hint: 'Qualitaet des Social-Contents',        checkbox: false },
+  { key: 'brand_match',           label: 'Markenwerte-Match',        cat: 'hero',      w: 1.5, hint: 'Passt der Athlet zu Citroens Werten?', checkbox: false },
+  { key: 'recognition',           label: 'Wiedererkennungswert',     cat: 'hero',      w: 1.5, hint: 'Bekanntheit in D und international',   checkbox: false },
+  { key: 'reach',                 label: 'Strahlkraft Reichweite',   cat: 'hero',      w: 1.0, hint: 'Qualitative Strahlkraft',              checkbox: false },
+  { key: 'medal_chance',          label: 'Medaillenchance LA28',      cat: 'medal',     w: 2.0, hint: 'Wie realistisch ist eine Medaille?',   checkbox: false },
+  { key: 'track_record',          label: 'Int. Track Record',        cat: 'medal',     w: 1.5, hint: 'Internationale Erfolge',              checkbox: false },
+  { key: 'consistency',           label: 'Wettkampf-Konstanz',       cat: 'medal',     w: 1.0, hint: 'Stabile Performance unter Druck',     checkbox: false },
+  { key: 'olympic_participation',  label: 'Olympia-Teilnahme',       cat: 'medal',     w: 1.5, hint: 'Bereits bei Olympia dabei?',           checkbox: true  },
+  { key: 'story_depth',           label: 'Emotionale Story-Tiefe',   cat: 'inspiring', w: 1.5, hint: 'Tiefe der persoenlichen Geschichte',   checkbox: false },
+  { key: 'resilience',            label: 'Comeback Resilience',      cat: 'inspiring', w: 1.5, hint: 'Ueberwindung von Rueckschlaegen',      checkbox: false },
+  { key: 'authenticity',          label: 'Authentizitaet',           cat: 'inspiring', w: 1.0, hint: 'Glaubwuerdigkeit der Story',           checkbox: false },
+  { key: 'para_profile',          label: 'Para-Profil Sichtbarkeit', cat: 'para',      w: 1.5, hint: 'Bekanntheit im Para-Sport',            checkbox: false },
+  { key: 'para_medals',           label: 'Medaillen-Potenzial Para', cat: 'para',      w: 2.0, hint: 'Para-Medaillenchance',                 checkbox: false },
+  { key: 'inclusion',             label: 'Inklusions-Statement',      cat: 'para',      w: 1.0, hint: 'Kraft als Inklusionsbotschafter',      checkbox: false },
+  { key: 'breakout',              label: 'Breakout-Potenzial',        cat: 'rising',    w: 1.5, hint: 'Potenzial zum naechsten grossen Namen', checkbox: false },
+  { key: 'youth_appeal',          label: 'Junge Zielgruppe 16-30',   cat: 'rising',    w: 1.0, hint: 'Relevanz fuer junge Fans',             checkbox: false },
+  { key: 'engagement',            label: 'Content-Qualitaet',        cat: 'rising',    w: 1.5, hint: 'Qualitaet des Social-Contents',        checkbox: false },
 ]
 
 const COMP = [
@@ -124,11 +126,8 @@ function getComputed(a: Athlete) {
 }
 function catAvg(scores: Scores, cat: string, computed: Record<string,number>): number {
   let s=0, w=0
-  // category-specific
   for (const c of BY_CAT[cat]) { s+=(scores[c.key]??5)*c.w; w+=c.w }
-  // computed
   for (const c of BY_COMP[cat]) { s+=(computed[c.key]??5)*c.w; w+=c.w }
-  // general criteria – same weight for all categories
   for (const c of GENERAL_CRIT) { s+=(scores[c.key]??5)*c.w; w+=c.w }
   return s/w
 }
@@ -144,7 +143,7 @@ function blankScores(): Scores {
   return s
 }
 function blankAthlete(id: number): Athlete {
-  return { id, name:'', sport:'', image:null, image_position:15, cost:'', reach_insta:'', reach_tiktok:'', reach_youtube:'', scores:blankScores() }
+  return { id, name:'', sport:'', image:null, image_position:15, cost:'', reach_insta:'', reach_tiktok:'', reach_youtube:'', comments:'', presse_storys:[], scores:blankScores() }
 }
 
 function compressImage(file: File): Promise<string> {
@@ -168,15 +167,7 @@ function compressImage(file: File): Promise<string> {
 }
 
 function CitroenLogo({ size=55 }: { size?: number }) {
-  return (
-    <img
-      src="/e4bfbd5e29837015b0189ed9012fe38e66d95fab.jpeg"
-      width={size}
-      height={Math.round(size * 1.2)}
-      alt="Citroen"
-      style={{ objectFit: 'contain' }}
-    />
-  )
+  return <img src="/e4bfbd5e29837015b0189ed9012fe38e66d95fab.jpeg" width={size} height={Math.round(size*1.2)} alt="Citroen" style={{objectFit:'contain'}}/>
 }
 
 function AthleteCard({ athlete, onClick }: { athlete: Athlete; onClick: () => void }) {
@@ -191,7 +182,7 @@ function AthleteCard({ athlete, onClick }: { athlete: Athlete; onClick: () => vo
 
   return (
     <div onClick={onClick}
-      style={{ background:'#fff', border:'1px solid #e8e8e8', borderRadius:12, overflow:'hidden', cursor:'pointer', transition:'box-shadow 0.15s', boxShadow:'0 1px 4px rgba(0,0,0,0.06)' }}
+      style={{background:'#fff',border:'1px solid #e8e8e8',borderRadius:12,overflow:'hidden',cursor:'pointer',transition:'box-shadow 0.15s',boxShadow:'0 1px 4px rgba(0,0,0,0.06)'}}
       onMouseEnter={e=>{(e.currentTarget as HTMLDivElement).style.boxShadow=`0 6px 20px ${rgba(info.color,0.15)}`}}
       onMouseLeave={e=>{(e.currentTarget as HTMLDivElement).style.boxShadow='0 1px 4px rgba(0,0,0,0.06)'}}
     >
@@ -205,10 +196,18 @@ function AthleteCard({ athlete, onClick }: { athlete: Athlete; onClick: () => vo
           <div style={{fontSize:10,fontWeight:500,padding:'3px 8px',borderRadius:20,background:'rgba(255,255,255,0.93)',color:info.color}}>{info.label}</div>
           {isOlympian && <div style={{fontSize:10,fontWeight:600,padding:'3px 8px',borderRadius:20,background:'rgba(255,255,255,0.93)',color:'#B8860B'}}>🏅 Olympia</div>}
         </div>
+        {(athlete.presse_storys?.length > 0) && (
+          <div style={{position:'absolute',bottom:8,right:8,fontSize:10,fontWeight:600,padding:'3px 8px',borderRadius:20,background:'rgba(255,255,255,0.93)',color:'#555'}}>📰 {athlete.presse_storys.length}</div>
+        )}
       </div>
       <div style={{padding:'12px 14px'}}>
         <div style={{fontSize:15,fontWeight:600,lineHeight:1.2,marginBottom:2}}>{athlete.name||'--'}</div>
-        <div style={{fontSize:11,color:'#888',marginBottom:hasMeta?8:10}}>{athlete.sport}</div>
+        <div style={{fontSize:11,color:'#888',marginBottom:athlete.comments?6:hasMeta?8:10}}>{athlete.sport}</div>
+        {athlete.comments && (
+          <div style={{fontSize:11,color:'#666',fontStyle:'italic',marginBottom:8,padding:'5px 8px',background:'#f8f8f8',borderRadius:6,borderLeft:'2px solid #ddd'}}>
+            {athlete.comments.length > 60 ? athlete.comments.slice(0,60)+'…' : athlete.comments}
+          </div>
+        )}
         {hasMeta && (
           <div style={{display:'flex',gap:8,marginBottom:10,padding:'6px 10px',background:'#f5f5f5',borderRadius:8,flexWrap:'wrap',alignItems:'center'}}>
             {athlete.cost && <span style={{fontSize:11,fontWeight:500,color:'#1a1a1a'}}>{fmtCost(athlete.cost)}</span>}
@@ -242,9 +241,11 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
   onSave: (a: Athlete) => Promise<void>
   onDelete: () => void; onBack: () => void
 }) {
-  const [form, setForm] = useState<Athlete>({...data, scores:{...data.scores}})
+  const [form, setForm] = useState<Athlete>({comments:'',presse_storys:[],...data,scores:{...data.scores}})
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [newStory, setNewStory] = useState({url:'',text:''})
+
   const computed = getComputed(form)
   const cat = autoAssign(form.scores, computed)
   const info = CATS[cat]
@@ -252,6 +253,14 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
 
   const updateScore = (key: string, val: number) => setForm(f=>({...f,scores:{...f.scores,[key]:val}}))
   const updateField = (field: keyof Athlete, val: string) => setForm(f=>({...f,[field]:val}))
+
+  const addStory = () => {
+    if (!newStory.text.trim() && !newStory.url.trim()) return
+    const story: PressStory = {id:Date.now().toString(), url:newStory.url.trim(), text:newStory.text.trim()}
+    setForm(f=>({...f,presse_storys:[...(f.presse_storys||[]),story]}))
+    setNewStory({url:'',text:''})
+  }
+  const removeStory = (id: string) => setForm(f=>({...f,presse_storys:(f.presse_storys||[]).filter(s=>s.id!==id)}))
 
   const handleImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; if (!file) return
@@ -269,7 +278,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
     setSaving(false)
   }
 
-  const inp: React.CSSProperties = { width:'100%', padding:'8px 10px', border:'1px solid #e2e2e2', borderRadius:8, fontSize:13, fontFamily:'inherit', outline:'none' }
+  const inp: React.CSSProperties = {width:'100%',padding:'8px 10px',border:'1px solid #e2e2e2',borderRadius:8,fontSize:13,fontFamily:'inherit',outline:'none',background:'#fff'}
 
   return (
     <div style={{maxWidth:680,margin:'0 auto',padding:'20px 24px'}}>
@@ -277,7 +286,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
         ← Zurueck zur Uebersicht
       </button>
 
-      {/* Auto-category banner */}
+      {/* Category banner */}
       <div style={{background:rgba(info.color,0.07),border:`1px solid ${rgba(info.color,0.2)}`,borderRadius:12,padding:'12px 16px',marginBottom:20,display:'flex',alignItems:'center',gap:10}}>
         <div>
           <div style={{fontSize:10,color:'#888',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:2}}>Kategorie (auto):</div>
@@ -338,7 +347,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
         </div>
       </div>
 
-      {/* Cost + Social */}
+      {/* Cost + Social + Comments */}
       <div style={{marginBottom:20,padding:'14px 16px',background:'#f8f8f8',borderRadius:12,border:'1px solid #ececec'}}>
         <div style={{marginBottom:14}}>
           <label style={{display:'block',fontSize:11,color:'#888',marginBottom:4}}>Kosten / Jahr (EUR)</label>
@@ -365,26 +374,54 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
             <input type="number" min="0" step="1000" value={form.reach_youtube} onChange={e=>updateField('reach_youtube',e.target.value)} placeholder="z. B. 5000" style={inp}/>
           </div>
         </div>
-        <div style={{display:'flex',alignItems:'center',gap:6}}>
+        <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:16}}>
           <span style={{fontSize:10,color:'#888'}}>Reichweite gesamt ({fmtReach(String(totalReach(form)))}):</span>
           <div style={{flex:1,height:4,background:'#e2e2e2',borderRadius:2,overflow:'hidden'}}>
             <div style={{width:`${computeReachScore(totalReach(form))/10*100}%`,height:'100%',background:'#0F7E45',borderRadius:2}}/>
           </div>
           <span style={{fontSize:11,fontWeight:500,color:'#0F7E45'}}>{computeReachScore(totalReach(form)).toFixed(1)}</span>
         </div>
+        <div>
+          <label style={{display:'block',fontSize:11,color:'#888',marginBottom:4}}>Kommentare / Notizen</label>
+          <textarea value={form.comments||''} onChange={e=>updateField('comments',e.target.value)} placeholder="Interne Notizen zum Athleten..." rows={3} style={{...inp,resize:'vertical' as const,lineHeight:1.5}}/>
+        </div>
       </div>
 
-      {/* GENERAL CRITERIA */}
+      {/* PR Section */}
+      <div style={{marginBottom:24,padding:'14px 16px',background:'#fff8f0',borderRadius:12,border:'1px solid #fde8cc'}}>
+        <div style={{fontSize:10,fontWeight:700,color:'#c47800',textTransform:'uppercase' as const,letterSpacing:'0.12em',marginBottom:14,padding:'8px 12px',background:'#fff8f0',borderRadius:8,border:'1px solid #fde8cc'}}>
+          PR · Presse Stories
+        </div>
+        {(form.presse_storys||[]).map(story=>(
+          <div key={story.id} style={{marginBottom:10,padding:'10px 12px',background:'#fff',borderRadius:8,border:'1px solid #ececec',position:'relative'}}>
+            {story.url && (
+              <a href={story.url} target="_blank" rel="noopener noreferrer" style={{fontSize:11,color:'#c47800',fontWeight:600,wordBreak:'break-all' as const,display:'block',marginBottom:story.text?4:0}}>
+                🔗 {story.url}
+              </a>
+            )}
+            {story.text && <div style={{fontSize:12,color:'#444',lineHeight:1.5}}>{story.text}</div>}
+            <button onClick={()=>removeStory(story.id)} style={{position:'absolute',top:8,right:8,background:'none',border:'none',color:'#ccc',fontSize:14,cursor:'pointer',padding:0}}>✕</button>
+          </div>
+        ))}
+        <div style={{background:'#fff',borderRadius:8,border:'1px solid #ececec',padding:'10px 12px'}}>
+          <div style={{fontSize:10,color:'#aaa',marginBottom:8,textTransform:'uppercase' as const,letterSpacing:'0.08em'}}>Neue Story hinzufuegen</div>
+          <input type="text" value={newStory.url} onChange={e=>setNewStory(s=>({...s,url:e.target.value}))} placeholder="URL / Link (optional)" style={{...inp,marginBottom:8,fontSize:12}}/>
+          <textarea value={newStory.text} onChange={e=>setNewStory(s=>({...s,text:e.target.value}))} placeholder="Beschreibung oder abgetippter Text..." rows={2} style={{...inp,marginBottom:8,resize:'vertical' as const,fontSize:12,lineHeight:1.5}}/>
+          <button onClick={addStory} style={{background:'#c47800',color:'#fff',border:'none',padding:'7px 16px',borderRadius:6,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>
+            + Hinzufuegen
+          </button>
+        </div>
+      </div>
+
+      {/* General criteria */}
       <div style={{marginBottom:24,padding:'14px 16px',background:'#f0f4ff',borderRadius:12,border:'1px solid #dde5ff'}}>
-        <div style={{fontSize:10,fontWeight:700,color:'#4466cc',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:14}}>
+        <div style={{fontSize:10,fontWeight:700,color:'#4466cc',textTransform:'uppercase' as const,letterSpacing:'0.12em',marginBottom:14,padding:'8px 12px',background:'#f0f4ff',borderRadius:8,border:'1px solid #dde5ff'}}>
           Allgemeine Bewertung · fliesst in alle Kategorien ein
         </div>
         {GENERAL_CRIT.map(cr=>(
           <div key={cr.key} style={{marginBottom:12}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}}>
-              <label style={{fontSize:12,fontWeight:500,color:'#1a1a1a'}} title={cr.hint}>
-                {cr.label} <span style={{fontSize:10,color:'#aab'}}>x{cr.w}</span>
-              </label>
+              <label style={{fontSize:12,fontWeight:500,color:'#1a1a1a'}} title={cr.hint}>{cr.label} <span style={{fontSize:10,color:'#aab'}}>x{cr.w}</span></label>
               <span style={{fontSize:12,fontWeight:600,color:'#4466cc',minWidth:16,textAlign:'right'}}>{form.scores[cr.key]??5}</span>
             </div>
             <input type="range" min="1" max="10" step="1" value={form.scores[cr.key]??5} onChange={e=>updateScore(cr.key,Number(e.target.value))} style={{width:'100%',accentColor:'#4466cc'}}/>
@@ -392,8 +429,8 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
         ))}
       </div>
 
-      {/* CATEGORY SCORING */}
-      <div style={{fontSize:10,fontWeight:700,color:'#888',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:14,paddingBottom:6,borderBottom:'1px solid #ececec'}}>
+      {/* Category scoring */}
+      <div style={{fontSize:10,fontWeight:700,color:'#888',textTransform:'uppercase' as const,letterSpacing:'0.12em',marginBottom:14,paddingBottom:6,borderBottom:'1px solid #ececec'}}>
         Kategorie-Kriterien
       </div>
 
@@ -403,7 +440,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
           <div key={k} style={{marginBottom:24}}>
             <div style={{display:'flex',alignItems:'center',gap:8,paddingBottom:8,marginBottom:12,borderBottom:`2px solid ${isM?c.color:'#ececec'}`}}>
               <div style={{width:8,height:8,borderRadius:'50%',background:isM?c.color:'#ddd',flexShrink:0}}/>
-              <span style={{fontSize:11,fontWeight:600,textTransform:'uppercase',letterSpacing:'0.08em',color:isM?c.color:'#aaa'}}>{c.label}</span>
+              <span style={{fontSize:11,fontWeight:600,textTransform:'uppercase' as const,letterSpacing:'0.08em',color:isM?c.color:'#aaa'}}>{c.label}</span>
               <span style={{marginLeft:'auto',fontSize:11,color:isM?c.color:'#aaa',fontWeight:500}}>Avg {avg.toFixed(2)}</span>
             </div>
             {BY_CAT[k].map(cr=>(
@@ -430,7 +467,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
                 )}
               </div>
             ))}
-            <div style={{fontSize:10,color:'#bbb',textTransform:'uppercase',letterSpacing:'0.08em',margin:'12px 0 6px',paddingTop:8,borderTop:'1px dashed #ececec'}}>Auto-berechnet</div>
+            <div style={{fontSize:10,color:'#bbb',textTransform:'uppercase' as const,letterSpacing:'0.08em',margin:'12px 0 6px',paddingTop:8,borderTop:'1px dashed #ececec'}}>Auto-berechnet</div>
             {BY_COMP[k].map((cc,i)=>{
               const sc=computed[cc.key as keyof typeof computed]
               return (
@@ -472,7 +509,10 @@ export default function Home() {
       try {
         const {data,error} = await supabase.from('athletes').select('*').order('created_at',{ascending:true})
         if (data&&!error) {
-          setAthletes(data.map(a=>({reach_insta:'',reach_tiktok:'',reach_youtube:'',image_position:15,...a})))
+          setAthletes(data.map(a=>({
+            reach_insta:'',reach_tiktok:'',reach_youtube:'',
+            image_position:15,comments:'',presse_storys:[],...a
+          })))
           setIsLive(true)
         } else setAthletes([])
       } catch { setAthletes([]) }
@@ -482,7 +522,7 @@ export default function Home() {
   },[])
 
   const openAdd = () => { setEditData(blankAthlete(Date.now())); setView('edit') }
-  const openEdit = (a: Athlete) => { setEditData({...a,scores:{...a.scores}}); setView('edit') }
+  const openEdit = (a: Athlete) => { setEditData({comments:'',presse_storys:[],...a,scores:{...a.scores}}); setView('edit') }
   const goBack = () => { setView('grid'); setEditData(null) }
 
   const handleSave = async (data: Athlete) => {
@@ -505,7 +545,7 @@ export default function Home() {
 
   if (!loaded) return <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',color:'#888',fontSize:14}}>Lade...</div>
 
-  const grouped: Record<string, Athlete[]> = { hero:[], medal:[], para:[], inspiring:[], rising:[] }
+  const grouped: Record<string, Athlete[]> = {hero:[],medal:[],para:[],inspiring:[],rising:[]}
   for (const a of athletes) {
     const cat = autoAssign(a.scores, getComputed(a))
     if (grouped[cat]) grouped[cat].push(a)
