@@ -298,6 +298,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
         Zurueck zur Uebersicht
       </button>
 
+      {/* Para Lock Toggle */}
       <div style={{marginBottom:16,padding:'12px 16px',background:form.para_locked?'#e8f0fe':'#f8f8f8',borderRadius:12,border:`1px solid ${form.para_locked?'#185FA5':'#e2e2e2'}`,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
         <div>
           <div style={{fontSize:13,fontWeight:600,color:form.para_locked?'#185FA5':'#888'}}>Para / Paralympic Athlet</div>
@@ -309,6 +310,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
         </div>
       </div>
 
+      {/* Category banner */}
       <div style={{background:rgba(info.color,0.07),border:`1px solid ${rgba(info.color,0.2)}`,borderRadius:12,padding:'12px 16px',marginBottom:20,display:'flex',alignItems:'center',gap:10}}>
         <div>
           <div style={{fontSize:10,color:'#888',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:2}}>Kategorie (auto):</div>
@@ -327,6 +329,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
         </div>
       </div>
 
+      {/* Photo */}
       <div style={{marginBottom:20}}>
         <div style={{width:'100%',height:260,borderRadius:12,overflow:'hidden',background:rgba(info.color,0.06),border:`1px solid ${rgba(info.color,0.15)}`,display:'flex',alignItems:'center',justifyContent:'center',position:'relative',marginBottom:10}}>
           {form.image
@@ -356,6 +359,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
         </div>
       </div>
 
+      {/* Name + Sport */}
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:16}}>
         <div>
           <label style={{display:'block',fontSize:11,color:'#888',marginBottom:4}}>Name *</label>
@@ -367,6 +371,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
         </div>
       </div>
 
+      {/* Cost + Social + Comments */}
       <div style={{marginBottom:20,padding:'14px 16px',background:'#f8f8f8',borderRadius:12,border:'1px solid #ececec'}}>
         <div style={{marginBottom:14}}>
           <label style={{display:'block',fontSize:11,color:'#888',marginBottom:4}}>Kosten / Jahr (EUR)</label>
@@ -406,6 +411,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
         </div>
       </div>
 
+      {/* PR Section */}
       <div style={{marginBottom:24,padding:'14px 16px',background:'#fff8f0',borderRadius:12,border:'1px solid #fde8cc'}}>
         <div style={{fontSize:10,fontWeight:700,color:'#c47800',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:14}}>PR / Presse Stories</div>
         {(form.presse_storys||[]).map(story=>(
@@ -423,6 +429,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
         </div>
       </div>
 
+      {/* General criteria */}
       <div style={{marginBottom:24,padding:'14px 16px',background:'#f0f4ff',borderRadius:12,border:'1px solid #dde5ff'}}>
         <div style={{fontSize:10,fontWeight:700,color:'#4466cc',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:14}}>Allgemeine Bewertung - fliesst in alle Kategorien ein</div>
         {GENERAL_CRIT.map(cr=>(
@@ -436,6 +443,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
         ))}
       </div>
 
+      {/* Category scoring */}
       <div style={{fontSize:10,fontWeight:700,color:'#888',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:14,paddingBottom:6,borderBottom:'1px solid #ececec'}}>Kategorie-Kriterien</div>
 
       {CAT_ORDER.map(k=>{
@@ -585,7 +593,7 @@ export default function Home() {
           </div>
           {athletes.length===0 ? (
             <div style={{textAlign:'center',padding:80,color:'#aaa',flex:1}}>
-              <p style={{fontSize:14}}>Noch keine Athleten. Klick auf Athlet hinzufuegen.</p>
+              <p style={{fontSize:14}}>Noch keine Athleten.</p>
             </div>
           ) : (
             <div style={{display:'flex',flex:1,overflow:'hidden'}}>
