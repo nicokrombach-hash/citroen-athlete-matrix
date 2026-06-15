@@ -199,11 +199,11 @@ function AthleteCard({ athlete, onClick }: { athlete: Athlete; onClick: () => vo
         }
         <div style={{position:'absolute',top:8,left:8,display:'flex',gap:4,flexWrap:'wrap'}}>
           <div style={{fontSize:10,fontWeight:500,padding:'3px 8px',borderRadius:20,background:'rgba(255,255,255,0.93)',color:info.color}}>{info.label}</div>
-          {isOlympian && <div style={{fontSize:10,fontWeight:600,padding:'3px 8px',borderRadius:20,background:'rgba(255,255,255,0.93)',color:'#B8860B'}}>🏅 Olympia</div>}
-          {athlete.para_locked && <div style={{fontSize:10,fontWeight:600,padding:'3px 8px',borderRadius:20,background:'rgba(255,255,255,0.93)',color:'#185FA5'}}>♿ Para</div>}
+          {isOlympian && <div style={{fontSize:10,fontWeight:600,padding:'3px 8px',borderRadius:20,background:'rgba(255,255,255,0.93)',color:'#B8860B'}}>Olympia</div>}
+          {athlete.para_locked && <div style={{fontSize:10,fontWeight:600,padding:'3px 8px',borderRadius:20,background:'rgba(255,255,255,0.93)',color:'#185FA5'}}>Para</div>}
         </div>
         {(athlete.presse_storys?.length > 0) && (
-          <div style={{position:'absolute',bottom:8,right:8,fontSize:10,fontWeight:600,padding:'3px 8px',borderRadius:20,background:'rgba(255,255,255,0.93)',color:'#555'}}>📰 {athlete.presse_storys.length}</div>
+          <div style={{position:'absolute',bottom:8,right:8,fontSize:10,fontWeight:600,padding:'3px 8px',borderRadius:20,background:'rgba(255,255,255,0.93)',color:'#555'}}>PR {athlete.presse_storys.length}</div>
         )}
       </div>
       <div style={{padding:'12px 14px'}}>
@@ -211,7 +211,7 @@ function AthleteCard({ athlete, onClick }: { athlete: Athlete; onClick: () => vo
         <div style={{fontSize:11,color:'#888',marginBottom:athlete.comments?6:hasMeta?8:10}}>{athlete.sport}</div>
         {athlete.comments && (
           <div style={{fontSize:11,color:'#666',fontStyle:'italic',marginBottom:8,padding:'5px 8px',background:'#f8f8f8',borderRadius:6,borderLeft:'2px solid #ddd'}}>
-            {athlete.comments.length > 60 ? athlete.comments.slice(0,60)+'…' : athlete.comments}
+            {athlete.comments.length > 60 ? athlete.comments.slice(0,60)+'...' : athlete.comments}
           </div>
         )}
         {hasMeta && (
@@ -247,7 +247,13 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
   onSave: (a: Athlete) => Promise<void>
   onDelete: () => void; onBack: () => void
 }) {
-  const [form, setForm] = useState<Athlete>({comments:'',presse_storys:[],para_locked:false,...data,scores:{...data.scores}})
+  const [form, setForm] = useState<Athlete>({
+    ...data,
+    scores: {...data.scores},
+    comments: data.comments || '',
+    presse_storys: data.presse_storys || [],
+    para_locked: data.para_locked || false,
+  })
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [newStory, setNewStory] = useState({url:'',text:''})
@@ -263,16 +269,16 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
   const addStory = () => {
     if (!newStory.text.trim() && !newStory.url.trim()) return
     const story: PressStory = {id:Date.now().toString(), url:newStory.url.trim(), text:newStory.text.trim()}
-    setForm(f=>({...f,presse_storys:[...(f.presse_storys||[]),story]}))
+    setForm(f=>({...f, presse_storys:[...(f.presse_storys||[]), story]}))
     setNewStory({url:'',text:''})
   }
-  const removeStory = (id: string) => setForm(f=>({...f,presse_storys:(f.presse_storys||[]).filter(s=>s.id!==id)}))
+  const removeStory = (id: string) => setForm(f=>({...f, presse_storys:(f.presse_storys||[]).filter(s=>s.id!==id)}))
 
   const handleImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; if (!file) return
     setUploading(true)
     const b64 = await compressImage(file)
-    setForm(f=>({...f,image:b64,image_position:15}))
+    setForm(f=>({...f, image:b64, image_position:15}))
     setUploading(false)
     e.target.value=''
   }
@@ -289,13 +295,12 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
   return (
     <div style={{maxWidth:680,margin:'0 auto',padding:'20px 24px'}}>
       <button onClick={onBack} style={{display:'flex',alignItems:'center',gap:6,background:'none',border:'none',color:'#888',fontSize:13,cursor:'pointer',padding:0,marginBottom:16,fontFamily:'inherit'}}>
-        ← Zurueck zur Uebersicht
+        Zurueck zur Uebersicht
       </button>
 
-      {/* Para Lock Banner */}
       <div style={{marginBottom:16,padding:'12px 16px',background:form.para_locked?'#e8f0fe':'#f8f8f8',borderRadius:12,border:`1px solid ${form.para_locked?'#185FA5':'#e2e2e2'}`,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
         <div>
-          <div style={{fontSize:13,fontWeight:600,color:form.para_locked?'#185FA5':'#888'}}>♿ Paralympic Athlet</div>
+          <div style={{fontSize:13,fontWeight:600,color:form.para_locked?'#185FA5':'#888'}}>Para / Paralympic Athlet</div>
           <div style={{fontSize:11,color:'#aaa',marginTop:2}}>Wenn aktiv, bleibt der Athlet immer in der Paralympic Star Spalte</div>
         </div>
         <div onClick={()=>setForm(f=>({...f,para_locked:!f.para_locked}))}
@@ -304,11 +309,10 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
         </div>
       </div>
 
-      {/* Category banner */}
       <div style={{background:rgba(info.color,0.07),border:`1px solid ${rgba(info.color,0.2)}`,borderRadius:12,padding:'12px 16px',marginBottom:20,display:'flex',alignItems:'center',gap:10}}>
         <div>
           <div style={{fontSize:10,color:'#888',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:2}}>Kategorie (auto):</div>
-          <div style={{fontSize:15,fontWeight:600,color:info.color}}>{info.label}{form.para_locked?' 🔒':''}</div>
+          <div style={{fontSize:15,fontWeight:600,color:info.color}}>{info.label}{form.para_locked?' (gesperrt)':''}</div>
         </div>
         <div style={{fontSize:11,color:'#888',marginLeft:8}}>Score {catAvg(form.scores,cat,computed).toFixed(2)}</div>
         <div style={{display:'flex',gap:5,alignItems:'flex-end',marginLeft:'auto'}}>
@@ -323,7 +327,6 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
         </div>
       </div>
 
-      {/* Photo */}
       <div style={{marginBottom:20}}>
         <div style={{width:'100%',height:260,borderRadius:12,overflow:'hidden',background:rgba(info.color,0.06),border:`1px solid ${rgba(info.color,0.15)}`,display:'flex',alignItems:'center',justifyContent:'center',position:'relative',marginBottom:10}}>
           {form.image
@@ -353,7 +356,6 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
         </div>
       </div>
 
-      {/* Name + Sport */}
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:16}}>
         <div>
           <label style={{display:'block',fontSize:11,color:'#888',marginBottom:4}}>Name *</label>
@@ -365,7 +367,6 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
         </div>
       </div>
 
-      {/* Cost + Social + Comments */}
       <div style={{marginBottom:20,padding:'14px 16px',background:'#f8f8f8',borderRadius:12,border:'1px solid #ececec'}}>
         <div style={{marginBottom:14}}>
           <label style={{display:'block',fontSize:11,color:'#888',marginBottom:4}}>Kosten / Jahr (EUR)</label>
@@ -401,41 +402,29 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
         </div>
         <div>
           <label style={{display:'block',fontSize:11,color:'#888',marginBottom:4}}>Kommentare / Notizen</label>
-          <textarea value={form.comments||''} onChange={e=>updateField('comments',e.target.value)} placeholder="Interne Notizen zum Athleten..." rows={3} style={{...inp,resize:'vertical' as const,lineHeight:1.5}}/>
+          <textarea value={form.comments} onChange={e=>updateField('comments',e.target.value)} placeholder="Interne Notizen zum Athleten..." rows={3} style={{...inp,resize:'vertical',lineHeight:'1.5'}}/>
         </div>
       </div>
 
-      {/* PR Section */}
       <div style={{marginBottom:24,padding:'14px 16px',background:'#fff8f0',borderRadius:12,border:'1px solid #fde8cc'}}>
-        <div style={{fontSize:10,fontWeight:700,color:'#c47800',textTransform:'uppercase' as const,letterSpacing:'0.12em',marginBottom:14}}>
-          PR · Presse Stories
-        </div>
+        <div style={{fontSize:10,fontWeight:700,color:'#c47800',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:14}}>PR / Presse Stories</div>
         {(form.presse_storys||[]).map(story=>(
           <div key={story.id} style={{marginBottom:10,padding:'10px 12px',background:'#fff',borderRadius:8,border:'1px solid #ececec',position:'relative'}}>
-            {story.url && (
-              <a href={story.url} target="_blank" rel="noopener noreferrer" style={{fontSize:11,color:'#c47800',fontWeight:600,wordBreak:'break-all' as const,display:'block',marginBottom:story.text?4:0}}>
-                🔗 {story.url}
-              </a>
-            )}
+            {story.url && <a href={story.url} target="_blank" rel="noopener noreferrer" style={{fontSize:11,color:'#c47800',fontWeight:600,wordBreak:'break-all',display:'block',marginBottom:story.text?4:0}}>{story.url}</a>}
             {story.text && <div style={{fontSize:12,color:'#444',lineHeight:1.5}}>{story.text}</div>}
-            <button onClick={()=>removeStory(story.id)} style={{position:'absolute',top:8,right:8,background:'none',border:'none',color:'#ccc',fontSize:14,cursor:'pointer',padding:0}}>✕</button>
+            <button onClick={()=>removeStory(story.id)} style={{position:'absolute',top:8,right:10,background:'none',border:'none',color:'#ccc',fontSize:16,cursor:'pointer',padding:0}}>x</button>
           </div>
         ))}
         <div style={{background:'#fff',borderRadius:8,border:'1px solid #ececec',padding:'10px 12px'}}>
-          <div style={{fontSize:10,color:'#aaa',marginBottom:8,textTransform:'uppercase' as const,letterSpacing:'0.08em'}}>Neue Story hinzufuegen</div>
+          <div style={{fontSize:10,color:'#aaa',marginBottom:8,textTransform:'uppercase',letterSpacing:'0.08em'}}>Neue Story hinzufuegen</div>
           <input type="text" value={newStory.url} onChange={e=>setNewStory(s=>({...s,url:e.target.value}))} placeholder="URL / Link (optional)" style={{...inp,marginBottom:8,fontSize:12}}/>
-          <textarea value={newStory.text} onChange={e=>setNewStory(s=>({...s,text:e.target.value}))} placeholder="Beschreibung oder abgetippter Text..." rows={2} style={{...inp,marginBottom:8,resize:'vertical' as const,fontSize:12,lineHeight:1.5}}/>
-          <button onClick={addStory} style={{background:'#c47800',color:'#fff',border:'none',padding:'7px 16px',borderRadius:6,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>
-            + Hinzufuegen
-          </button>
+          <textarea value={newStory.text} onChange={e=>setNewStory(s=>({...s,text:e.target.value}))} placeholder="Beschreibung oder Text..." rows={2} style={{...inp,marginBottom:8,resize:'vertical',fontSize:12,lineHeight:'1.5'}}/>
+          <button onClick={addStory} style={{background:'#c47800',color:'#fff',border:'none',padding:'7px 16px',borderRadius:6,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>+ Hinzufuegen</button>
         </div>
       </div>
 
-      {/* General criteria */}
       <div style={{marginBottom:24,padding:'14px 16px',background:'#f0f4ff',borderRadius:12,border:'1px solid #dde5ff'}}>
-        <div style={{fontSize:10,fontWeight:700,color:'#4466cc',textTransform:'uppercase' as const,letterSpacing:'0.12em',marginBottom:14}}>
-          Allgemeine Bewertung · fliesst in alle Kategorien ein
-        </div>
+        <div style={{fontSize:10,fontWeight:700,color:'#4466cc',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:14}}>Allgemeine Bewertung - fliesst in alle Kategorien ein</div>
         {GENERAL_CRIT.map(cr=>(
           <div key={cr.key} style={{marginBottom:12}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}}>
@@ -447,10 +436,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
         ))}
       </div>
 
-      {/* Category scoring */}
-      <div style={{fontSize:10,fontWeight:700,color:'#888',textTransform:'uppercase' as const,letterSpacing:'0.12em',marginBottom:14,paddingBottom:6,borderBottom:'1px solid #ececec'}}>
-        Kategorie-Kriterien
-      </div>
+      <div style={{fontSize:10,fontWeight:700,color:'#888',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:14,paddingBottom:6,borderBottom:'1px solid #ececec'}}>Kategorie-Kriterien</div>
 
       {CAT_ORDER.map(k=>{
         const c=CATS[k], isM=k===cat, avg=catAvg(form.scores,k,computed)
@@ -458,7 +444,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
           <div key={k} style={{marginBottom:24}}>
             <div style={{display:'flex',alignItems:'center',gap:8,paddingBottom:8,marginBottom:12,borderBottom:`2px solid ${isM?c.color:'#ececec'}`}}>
               <div style={{width:8,height:8,borderRadius:'50%',background:isM?c.color:'#ddd',flexShrink:0}}/>
-              <span style={{fontSize:11,fontWeight:600,textTransform:'uppercase' as const,letterSpacing:'0.08em',color:isM?c.color:'#aaa'}}>{c.label}</span>
+              <span style={{fontSize:11,fontWeight:600,textTransform:'uppercase',letterSpacing:'0.08em',color:isM?c.color:'#aaa'}}>{c.label}</span>
               <span style={{marginLeft:'auto',fontSize:11,color:isM?c.color:'#aaa',fontWeight:500}}>Avg {avg.toFixed(2)}</span>
             </div>
             {BY_CAT[k].map(cr=>(
@@ -467,7 +453,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
                   <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 14px',background:'#f8f8f8',borderRadius:8,border:'1px solid #ececec'}}>
                     <div>
                       <div style={{fontSize:12,fontWeight:500,color:'#1a1a1a'}}>{cr.label}</div>
-                      <div style={{fontSize:10,color:'#aaa',marginTop:1}}>{cr.hint} · x{cr.w}</div>
+                      <div style={{fontSize:10,color:'#aaa',marginTop:1}}>{cr.hint} - x{cr.w}</div>
                     </div>
                     <div onClick={()=>updateScore(cr.key,(form.scores[cr.key]??1)>=10?1:10)}
                       style={{width:44,height:24,borderRadius:12,background:(form.scores[cr.key]??1)>=10?c.color:'#ddd',cursor:'pointer',position:'relative',transition:'background 0.2s',flexShrink:0}}>
@@ -485,7 +471,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
                 )}
               </div>
             ))}
-            <div style={{fontSize:10,color:'#bbb',textTransform:'uppercase' as const,letterSpacing:'0.08em',margin:'12px 0 6px',paddingTop:8,borderTop:'1px dashed #ececec'}}>Auto-berechnet</div>
+            <div style={{fontSize:10,color:'#bbb',textTransform:'uppercase',letterSpacing:'0.08em',margin:'12px 0 6px',paddingTop:8,borderTop:'1px dashed #ececec'}}>Auto-berechnet</div>
             {BY_COMP[k].map((cc,i)=>{
               const sc=computed[cc.key as keyof typeof computed]
               return (
@@ -528,8 +514,8 @@ export default function Home() {
         const {data,error} = await supabase.from('athletes').select('*').order('created_at',{ascending:true})
         if (data&&!error) {
           setAthletes(data.map(a=>({
-            reach_insta:'',reach_tiktok:'',reach_youtube:'',
-            image_position:15,comments:'',presse_storys:[],para_locked:false,...a
+            reach_insta:'', reach_tiktok:'', reach_youtube:'',
+            image_position:15, comments:'', presse_storys:[], para_locked:false, ...a
           })))
           setIsLive(true)
         } else setAthletes([])
@@ -540,7 +526,7 @@ export default function Home() {
   },[])
 
   const openAdd = () => { setEditData(blankAthlete(Date.now())); setView('edit') }
-  const openEdit = (a: Athlete) => { setEditData({comments:'',presse_storys:[],para_locked:false,...a,scores:{...a.scores}}); setView('edit') }
+  const openEdit = (a: Athlete) => { setEditData({...a, scores:{...a.scores}}); setView('edit') }
   const goBack = () => { setView('grid'); setEditData(null) }
 
   const handleSave = async (data: Athlete) => {
@@ -594,7 +580,7 @@ export default function Home() {
       {view==='grid' ? (
         <>
           <div style={{padding:'20px 24px 16px',borderBottom:'1px solid #ececec',background:'#fff',flexShrink:0}}>
-            <div style={{fontSize:11,color:'#bbb',textTransform:'uppercase',letterSpacing:'0.14em',marginBottom:4}}>Citroen · Road to LA28</div>
+            <div style={{fontSize:11,color:'#bbb',textTransform:'uppercase',letterSpacing:'0.14em',marginBottom:4}}>Citroen - Road to LA28</div>
             <div style={{fontSize:26,fontWeight:700,color:'#1a1a1a',letterSpacing:'-0.02em'}}>Athlete Squad</div>
           </div>
           {athletes.length===0 ? (
