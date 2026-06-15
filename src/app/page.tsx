@@ -18,6 +18,7 @@ interface Athlete {
   comments: string
   presse_storys: PressStory[]
   para_locked: boolean
+  sport_tier: number
   scores: Scores
 }
 
@@ -31,8 +32,15 @@ const CATS: Record<string, { label: string; abbr: string; color: string }> = {
   rising:    { label: 'Rising Star',      abbr: 'RISING',  color: '#0F7E45' },
 }
 
+const TIERS: Record<number, { label: string; short: string; color: string; bg: string }> = {
+  1: { label: 'Tier 1 · Core Fit',         short: 'T1',  color: '#fff',    bg: '#DA291C' },
+  2: { label: 'Tier 2 · Opportunistisch',   short: 'T2',  color: '#fff',    bg: '#185FA5' },
+  3: { label: 'Tier 3 · Athletenfit',       short: 'T3',  color: '#fff',    bg: '#4A7C6F' },
+  0: { label: 'Low Fit',                    short: 'LF',  color: '#fff',    bg: '#888888' },
+}
+
 const GENERAL_CRIT = [
-  { key: 'strategy_fit',      label: 'Strategie Fit',              w: 1.0, hint: 'Passt zur Citroen-Markenstrategie' },
+  { key: 'strategy_fit',      label: 'Strategie Fit',              w: 1.0, hint: 'Passt zur Citroen-Markenstrategie (auto via Sport-Tier)' },
   { key: 'good_to_work',      label: 'Good to work with',          w: 1.0, hint: 'Zusammenarbeit, Zuverlaessigkeit' },
   { key: 'social_competence', label: 'Soziale Kompetenz / Events', w: 1.0, hint: 'Ausstrahlung bei Events und Umgang' },
   { key: 'growth_potential',  label: 'Growth Potential',           w: 1.0, hint: 'Langfristiges Wachstumspotenzial' },
@@ -148,7 +156,7 @@ function blankScores(): Scores {
   return s
 }
 function blankAthlete(id: number): Athlete {
-  return { id, name:'', sport:'', image:null, image_position:15, cost:'', reach_insta:'', reach_tiktok:'', reach_youtube:'', comments:'', presse_storys:[], para_locked:false, scores:blankScores() }
+  return { id, name:'', sport:'', image:null, image_position:15, cost:'', reach_insta:'', reach_tiktok:'', reach_youtube:'', comments:'', presse_storys:[], para_locked:false, sport_tier:3, scores:blankScores() }
 }
 
 function compressImage(file: File): Promise<string> {
@@ -175,6 +183,15 @@ function CitroenLogo({ size=55 }: { size?: number }) {
   return <img src="/e4bfbd5e29837015b0189ed9012fe38e66d95fab.jpeg" width={size} height={Math.round(size*1.2)} alt="Citroen" style={{objectFit:'contain'}}/>
 }
 
+function TierBadge({ tier }: { tier: number }) {
+  const t = TIERS[tier] ?? TIERS[3]
+  return (
+    <div style={{display:'inline-flex',alignItems:'center',gap:4,padding:'2px 8px',borderRadius:20,background:t.bg,color:t.color,fontSize:9,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase' as const}}>
+      {t.label}
+    </div>
+  )
+}
+
 function AthleteCard({ athlete, onClick }: { athlete: Athlete; onClick: () => void }) {
   const computed = getComputed(athlete)
   const cat = autoAssign(athlete, computed)
@@ -184,6 +201,8 @@ function AthleteCard({ athlete, onClick }: { athlete: Athlete; onClick: () => vo
   const tr = totalReach(athlete)
   const hasMeta = athlete.cost || tr > 0
   const isOlympian = (athlete.scores['olympic_participation'] ?? 1) >= 10
+  const tier = athlete.sport_tier ?? 3
+  const tierInfo = TIERS[tier] ?? TIERS[3]
 
   return (
     <div onClick={onClick}
@@ -206,6 +225,13 @@ function AthleteCard({ athlete, onClick }: { athlete: Athlete; onClick: () => vo
           <div style={{position:'absolute',bottom:8,right:8,fontSize:10,fontWeight:600,padding:'3px 8px',borderRadius:20,background:'rgba(255,255,255,0.93)',color:'#555'}}>PR {athlete.presse_storys.length}</div>
         )}
       </div>
+
+      {/* Tier Strip */}
+      <div style={{background:tierInfo.bg,padding:'4px 12px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+        <span style={{fontSize:9,fontWeight:700,color:tierInfo.color,letterSpacing:'0.08em',textTransform:'uppercase' as const}}>{tierInfo.label}</span>
+        <span style={{fontSize:9,color:tierInfo.color,opacity:0.8}}>Strategie Fit: {athlete.scores['strategy_fit']??5}/10</span>
+      </div>
+
       <div style={{padding:'12px 14px'}}>
         <div style={{fontSize:15,fontWeight:600,lineHeight:1.2,marginBottom:2}}>{athlete.name||'--'}</div>
         <div style={{fontSize:11,color:'#888',marginBottom:athlete.comments?6:hasMeta?8:10}}>{athlete.sport}</div>
@@ -253,6 +279,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
     comments: data.comments || '',
     presse_storys: data.presse_storys || [],
     para_locked: data.para_locked || false,
+    sport_tier: data.sport_tier ?? 3,
   })
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -262,9 +289,15 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
   const cat = autoAssign(form, computed)
   const info = CATS[cat]
   const pos = form.image_position ?? 15
+  const tierInfo = TIERS[form.sport_tier] ?? TIERS[3]
 
   const updateScore = (key: string, val: number) => setForm(f=>({...f,scores:{...f.scores,[key]:val}}))
   const updateField = (field: keyof Athlete, val: string) => setForm(f=>({...f,[field]:val}))
+
+  const handleTierChange = (tier: number) => {
+    const tierScores: Record<number,number> = {1:10, 2:7, 3:4, 0:2}
+    setForm(f=>({...f, sport_tier:tier, scores:{...f.scores, strategy_fit: tierScores[tier]??5}}))
+  }
 
   const addStory = () => {
     if (!newStory.text.trim() && !newStory.url.trim()) return
@@ -298,6 +331,28 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
         Zurueck zur Uebersicht
       </button>
 
+      {/* Sport Tier Selector */}
+      <div style={{marginBottom:16,padding:'14px 16px',background:'#f8f8f8',borderRadius:12,border:'1px solid #ececec'}}>
+        <div style={{fontSize:10,fontWeight:700,color:'#888',textTransform:'uppercase' as const,letterSpacing:'0.12em',marginBottom:12}}>Olympischer Sportarten Fit</div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8}}>
+          {([1,2,3,0] as number[]).map(t=>{
+            const ti = TIERS[t]
+            const active = form.sport_tier === t
+            return (
+              <div key={t} onClick={()=>handleTierChange(t)}
+                style={{padding:'8px 10px',borderRadius:8,border:`2px solid ${active?ti.bg:'#e2e2e2'}`,background:active?ti.bg:'#fff',cursor:'pointer',textAlign:'center' as const,transition:'all 0.15s'}}>
+                <div style={{fontSize:11,fontWeight:700,color:active?'#fff':ti.bg}}>{ti.short}</div>
+                <div style={{fontSize:9,color:active?'rgba(255,255,255,0.85)':'#888',marginTop:2,lineHeight:1.3}}>{t===1?'Core Fit':t===2?'Opportunist.':t===3?'Athletenfit':'Low Fit'}</div>
+              </div>
+            )
+          })}
+        </div>
+        <div style={{marginTop:10,padding:'6px 10px',borderRadius:6,background:tierInfo.bg}}>
+          <span style={{fontSize:11,fontWeight:600,color:'#fff'}}>{tierInfo.label}</span>
+          <span style={{fontSize:11,color:'rgba(255,255,255,0.8)',marginLeft:8}}>→ Strategie Fit: {form.scores['strategy_fit']??5}/10</span>
+        </div>
+      </div>
+
       {/* Para Lock Toggle */}
       <div style={{marginBottom:16,padding:'12px 16px',background:form.para_locked?'#e8f0fe':'#f8f8f8',borderRadius:12,border:`1px solid ${form.para_locked?'#185FA5':'#e2e2e2'}`,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
         <div>
@@ -313,7 +368,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
       {/* Category banner */}
       <div style={{background:rgba(info.color,0.07),border:`1px solid ${rgba(info.color,0.2)}`,borderRadius:12,padding:'12px 16px',marginBottom:20,display:'flex',alignItems:'center',gap:10}}>
         <div>
-          <div style={{fontSize:10,color:'#888',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:2}}>Kategorie (auto):</div>
+          <div style={{fontSize:10,color:'#888',textTransform:'uppercase' as const,letterSpacing:'0.1em',marginBottom:2}}>Kategorie (auto):</div>
           <div style={{fontSize:15,fontWeight:600,color:info.color}}>{info.label}{form.para_locked?' (gesperrt)':''}</div>
         </div>
         <div style={{fontSize:11,color:'#888',marginLeft:8}}>Score {catAvg(form.scores,cat,computed).toFixed(2)}</div>
@@ -413,38 +468,45 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
 
       {/* PR Section */}
       <div style={{marginBottom:24,padding:'14px 16px',background:'#fff8f0',borderRadius:12,border:'1px solid #fde8cc'}}>
-        <div style={{fontSize:10,fontWeight:700,color:'#c47800',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:14}}>PR / Presse Stories</div>
+        <div style={{fontSize:10,fontWeight:700,color:'#c47800',textTransform:'uppercase' as const,letterSpacing:'0.12em',marginBottom:14}}>PR / Presse Stories</div>
         {(form.presse_storys||[]).map(story=>(
           <div key={story.id} style={{marginBottom:10,padding:'10px 12px',background:'#fff',borderRadius:8,border:'1px solid #ececec',position:'relative'}}>
-            {story.url && <a href={story.url} target="_blank" rel="noopener noreferrer" style={{fontSize:11,color:'#c47800',fontWeight:600,wordBreak:'break-all',display:'block',marginBottom:story.text?4:0}}>{story.url}</a>}
+            {story.url && <a href={story.url} target="_blank" rel="noopener noreferrer" style={{fontSize:11,color:'#c47800',fontWeight:600,wordBreak:'break-all' as const,display:'block',marginBottom:story.text?4:0}}>{story.url}</a>}
             {story.text && <div style={{fontSize:12,color:'#444',lineHeight:1.5}}>{story.text}</div>}
             <button onClick={()=>removeStory(story.id)} style={{position:'absolute',top:8,right:10,background:'none',border:'none',color:'#ccc',fontSize:16,cursor:'pointer',padding:0}}>x</button>
           </div>
         ))}
         <div style={{background:'#fff',borderRadius:8,border:'1px solid #ececec',padding:'10px 12px'}}>
-          <div style={{fontSize:10,color:'#aaa',marginBottom:8,textTransform:'uppercase',letterSpacing:'0.08em'}}>Neue Story hinzufuegen</div>
+          <div style={{fontSize:10,color:'#aaa',marginBottom:8,textTransform:'uppercase' as const,letterSpacing:'0.08em'}}>Neue Story hinzufuegen</div>
           <input type="text" value={newStory.url} onChange={e=>setNewStory(s=>({...s,url:e.target.value}))} placeholder="URL / Link (optional)" style={{...inp,marginBottom:8,fontSize:12}}/>
-          <textarea value={newStory.text} onChange={e=>setNewStory(s=>({...s,text:e.target.value}))} placeholder="Beschreibung oder Text..." rows={2} style={{...inp,marginBottom:8,resize:'vertical',fontSize:12,lineHeight:'1.5'}}/>
+          <textarea value={newStory.text} onChange={e=>setNewStory(s=>({...s,text:e.target.value}))} placeholder="Beschreibung oder Text..." rows={2} style={{...inp,marginBottom:8,resize:'vertical' as const,fontSize:12,lineHeight:'1.5'}}/>
           <button onClick={addStory} style={{background:'#c47800',color:'#fff',border:'none',padding:'7px 16px',borderRadius:6,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>+ Hinzufuegen</button>
         </div>
       </div>
 
       {/* General criteria */}
       <div style={{marginBottom:24,padding:'14px 16px',background:'#f0f4ff',borderRadius:12,border:'1px solid #dde5ff'}}>
-        <div style={{fontSize:10,fontWeight:700,color:'#4466cc',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:14}}>Allgemeine Bewertung - fliesst in alle Kategorien ein</div>
+        <div style={{fontSize:10,fontWeight:700,color:'#4466cc',textTransform:'uppercase' as const,letterSpacing:'0.12em',marginBottom:14}}>Allgemeine Bewertung - fliesst in alle Kategorien ein</div>
         {GENERAL_CRIT.map(cr=>(
           <div key={cr.key} style={{marginBottom:12}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}}>
-              <label style={{fontSize:12,fontWeight:500,color:'#1a1a1a'}} title={cr.hint}>{cr.label} <span style={{fontSize:10,color:'#aab'}}>x{cr.w}</span></label>
-              <span style={{fontSize:12,fontWeight:600,color:'#4466cc',minWidth:16,textAlign:'right'}}>{form.scores[cr.key]??5}</span>
+              <label style={{fontSize:12,fontWeight:500,color:'#1a1a1a'}} title={cr.hint}>
+                {cr.label}
+                {cr.key==='strategy_fit' && <span style={{fontSize:10,color:tierInfo.bg,marginLeft:6,fontWeight:600}}>auto via {tierInfo.short}</span>}
+                <span style={{fontSize:10,color:'#aab',marginLeft:4}}>x{cr.w}</span>
+              </label>
+              <span style={{fontSize:12,fontWeight:600,color:'#4466cc',minWidth:16,textAlign:'right' as const}}>{form.scores[cr.key]??5}</span>
             </div>
-            <input type="range" min="1" max="10" step="1" value={form.scores[cr.key]??5} onChange={e=>updateScore(cr.key,Number(e.target.value))} style={{width:'100%',accentColor:'#4466cc'}}/>
+            <input type="range" min="1" max="10" step="1" value={form.scores[cr.key]??5}
+              onChange={e=>updateScore(cr.key,Number(e.target.value))}
+              disabled={cr.key==='strategy_fit'}
+              style={{width:'100%',accentColor:cr.key==='strategy_fit'?tierInfo.bg:'#4466cc',opacity:cr.key==='strategy_fit'?0.7:1}}/>
           </div>
         ))}
       </div>
 
       {/* Category scoring */}
-      <div style={{fontSize:10,fontWeight:700,color:'#888',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:14,paddingBottom:6,borderBottom:'1px solid #ececec'}}>Kategorie-Kriterien</div>
+      <div style={{fontSize:10,fontWeight:700,color:'#888',textTransform:'uppercase' as const,letterSpacing:'0.12em',marginBottom:14,paddingBottom:6,borderBottom:'1px solid #ececec'}}>Kategorie-Kriterien</div>
 
       {CAT_ORDER.map(k=>{
         const c=CATS[k], isM=k===cat, avg=catAvg(form.scores,k,computed)
@@ -452,7 +514,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
           <div key={k} style={{marginBottom:24}}>
             <div style={{display:'flex',alignItems:'center',gap:8,paddingBottom:8,marginBottom:12,borderBottom:`2px solid ${isM?c.color:'#ececec'}`}}>
               <div style={{width:8,height:8,borderRadius:'50%',background:isM?c.color:'#ddd',flexShrink:0}}/>
-              <span style={{fontSize:11,fontWeight:600,textTransform:'uppercase',letterSpacing:'0.08em',color:isM?c.color:'#aaa'}}>{c.label}</span>
+              <span style={{fontSize:11,fontWeight:600,textTransform:'uppercase' as const,letterSpacing:'0.08em',color:isM?c.color:'#aaa'}}>{c.label}</span>
               <span style={{marginLeft:'auto',fontSize:11,color:isM?c.color:'#aaa',fontWeight:500}}>Avg {avg.toFixed(2)}</span>
             </div>
             {BY_CAT[k].map(cr=>(
@@ -472,14 +534,14 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
                   <>
                     <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}}>
                       <label style={{fontSize:12,color:'#1a1a1a'}} title={cr.hint}>{cr.label} <span style={{fontSize:10,color:'#bbb'}}>x{cr.w}</span></label>
-                      <span style={{fontSize:12,fontWeight:600,color:isM?c.color:'#1a1a1a',minWidth:16,textAlign:'right'}}>{form.scores[cr.key]??5}</span>
+                      <span style={{fontSize:12,fontWeight:600,color:isM?c.color:'#1a1a1a',minWidth:16,textAlign:'right' as const}}>{form.scores[cr.key]??5}</span>
                     </div>
                     <input type="range" min="1" max="10" step="1" value={form.scores[cr.key]??5} onChange={e=>updateScore(cr.key,Number(e.target.value))} style={{width:'100%',accentColor:c.color}}/>
                   </>
                 )}
               </div>
             ))}
-            <div style={{fontSize:10,color:'#bbb',textTransform:'uppercase',letterSpacing:'0.08em',margin:'12px 0 6px',paddingTop:8,borderTop:'1px dashed #ececec'}}>Auto-berechnet</div>
+            <div style={{fontSize:10,color:'#bbb',textTransform:'uppercase' as const,letterSpacing:'0.08em',margin:'12px 0 6px',paddingTop:8,borderTop:'1px dashed #ececec'}}>Auto-berechnet</div>
             {BY_COMP[k].map((cc,i)=>{
               const sc=computed[cc.key as keyof typeof computed]
               return (
@@ -489,8 +551,8 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
                   <div style={{width:60,height:3,background:'#e2e2e2',borderRadius:2,overflow:'hidden'}}>
                     <div style={{width:`${(sc/10*100).toFixed(0)}%`,height:'100%',background:isM?c.color:'#ccc',borderRadius:2}}/>
                   </div>
-                  <span style={{fontSize:11,fontWeight:500,color:isM?c.color:'#aaa',minWidth:20,textAlign:'right'}}>{sc.toFixed(1)}</span>
-                  <span style={{fontSize:10,color:'#bbb',minWidth:28,textAlign:'right'}}>x{cc.w}</span>
+                  <span style={{fontSize:11,fontWeight:500,color:isM?c.color:'#aaa',minWidth:20,textAlign:'right' as const}}>{sc.toFixed(1)}</span>
+                  <span style={{fontSize:10,color:'#bbb',minWidth:28,textAlign:'right' as const}}>x{cc.w}</span>
                 </div>
               )
             })}
@@ -523,7 +585,7 @@ export default function Home() {
         if (data&&!error) {
           setAthletes(data.map(a=>({
             reach_insta:'', reach_tiktok:'', reach_youtube:'',
-            image_position:15, comments:'', presse_storys:[], para_locked:false, ...a
+            image_position:15, comments:'', presse_storys:[], para_locked:false, sport_tier:3, ...a
           })))
           setIsLive(true)
         } else setAthletes([])
@@ -571,7 +633,7 @@ export default function Home() {
       <header style={{display:'flex',alignItems:'center',gap:12,padding:'0 24px',height:70,borderBottom:`2.5px solid ${RED}`,background:'#fff',flexShrink:0}}>
         <CitroenLogo size={55}/>
         <div>
-          <div style={{fontSize:10,color:RED,letterSpacing:'0.15em',textTransform:'uppercase',fontWeight:600}}>Citroen</div>
+          <div style={{fontSize:10,color:RED,letterSpacing:'0.15em',textTransform:'uppercase' as const,fontWeight:600}}>Citroen</div>
           <div style={{fontSize:17,fontWeight:600,lineHeight:1}}>Athlete Squad Matrix</div>
         </div>
         <div style={{display:'flex',alignItems:'center',gap:6,marginLeft:16,padding:'3px 10px',borderRadius:20,background:isLive?'#f0fdf4':'#fef2f2',border:`1px solid ${isLive?'#86efac':'#fca5a5'}`}}>
@@ -579,17 +641,39 @@ export default function Home() {
           <span style={{fontSize:11,fontWeight:500,color:isLive?'#16a34a':RED}}>{isLive?'Live':'Offline'}</span>
         </div>
         {view==='grid' && (
-          <button onClick={openAdd} style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:6,background:RED,color:'#fff',border:'none',padding:'9px 18px',borderRadius:8,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>
-            + Athlet hinzufuegen
-          </button>
+          <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:8}}>
+            <div style={{display:'flex',gap:6,alignItems:'center'}}>
+              {([1,2,3,0] as number[]).map(t=>{
+                const ti=TIERS[t]
+                return <div key={t} style={{fontSize:9,fontWeight:700,padding:'2px 6px',borderRadius:4,background:ti.bg,color:ti.color}}>{ti.short}</div>
+              })}
+            </div>
+            <button onClick={openAdd} style={{display:'flex',alignItems:'center',gap:6,background:RED,color:'#fff',border:'none',padding:'9px 18px',borderRadius:8,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>
+              + Athlet hinzufuegen
+            </button>
+          </div>
         )}
       </header>
 
       {view==='grid' ? (
         <>
-          <div style={{padding:'20px 24px 16px',borderBottom:'1px solid #ececec',background:'#fff',flexShrink:0}}>
-            <div style={{fontSize:11,color:'#bbb',textTransform:'uppercase',letterSpacing:'0.14em',marginBottom:4}}>Citroen - Road to LA28</div>
-            <div style={{fontSize:26,fontWeight:700,color:'#1a1a1a',letterSpacing:'-0.02em'}}>Athlete Squad</div>
+          <div style={{padding:'16px 24px 14px',borderBottom:'1px solid #ececec',background:'#fff',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+            <div>
+              <div style={{fontSize:11,color:'#bbb',textTransform:'uppercase' as const,letterSpacing:'0.14em',marginBottom:2}}>Citroen - Road to LA28</div>
+              <div style={{fontSize:24,fontWeight:700,color:'#1a1a1a',letterSpacing:'-0.02em'}}>Athlete Squad</div>
+            </div>
+            <div style={{display:'flex',gap:12,alignItems:'center'}}>
+              {([1,2,3,0] as number[]).map(t=>{
+                const ti=TIERS[t]
+                const count=athletes.filter(a=>(a.sport_tier??3)===t).length
+                return (
+                  <div key={t} style={{textAlign:'center' as const}}>
+                    <div style={{fontSize:9,fontWeight:700,padding:'3px 8px',borderRadius:6,background:ti.bg,color:ti.color,marginBottom:2}}>{ti.label}</div>
+                    <div style={{fontSize:10,color:'#888'}}>{count} Athleten</div>
+                  </div>
+                )
+              })}
+            </div>
           </div>
           {athletes.length===0 ? (
             <div style={{textAlign:'center',padding:80,color:'#aaa',flex:1}}>
@@ -602,8 +686,8 @@ export default function Home() {
                 return (
                   <div key={k} style={{flex:'1 1 0',minWidth:0,borderRight:colIdx<CAT_ORDER.length-1?'1px solid #ececec':'none',display:'flex',flexDirection:'column',overflow:'hidden',background:'#fafafa'}}>
                     <div style={{padding:'14px 14px 12px',borderBottom:`3px solid ${c.color}`,background:'#fff',flexShrink:0}}>
-                      <div style={{fontSize:12,fontWeight:700,color:c.color,textTransform:'uppercase',letterSpacing:'0.08em',textAlign:'center'}}>{c.label}</div>
-                      <div style={{fontSize:11,color:'#bbb',textAlign:'center',marginTop:3}}>{list.length} {list.length===1?'Athlet':'Athleten'}</div>
+                      <div style={{fontSize:12,fontWeight:700,color:c.color,textTransform:'uppercase' as const,letterSpacing:'0.08em',textAlign:'center' as const}}>{c.label}</div>
+                      <div style={{fontSize:11,color:'#bbb',textAlign:'center' as const,marginTop:3}}>{list.length} {list.length===1?'Athlet':'Athleten'}</div>
                     </div>
                     <div style={{flex:1,overflowY:'auto',padding:'12px 10px',display:'flex',flexDirection:'column',gap:12}}>
                       {list.map((a,idx)=>(
@@ -615,7 +699,7 @@ export default function Home() {
                         </div>
                       ))}
                       {list.length===0 && (
-                        <div style={{textAlign:'center',padding:'40px 16px',color:'#ccc',fontSize:12,border:'1px dashed #ddd',borderRadius:12,margin:'8px 0'}}>
+                        <div style={{textAlign:'center' as const,padding:'40px 16px',color:'#ccc',fontSize:12,border:'1px dashed #ddd',borderRadius:12,margin:'8px 0'}}>
                           Noch kein Athlet
                         </div>
                       )}
