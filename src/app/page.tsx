@@ -5,7 +5,14 @@ import { supabase } from '@/lib/supabase'
 
 interface PressStory { id: string; url: string; text: string }
 interface Scores { [key: string]: number }
-interface Medals { gold: number; silver: number; bronze: number }
+interface Medals {
+  olympic_gold: number
+  olympic_silver: number
+  olympic_bronze: number
+  wm_gold: number
+  wm_silver: number
+  wm_bronze: number
+}
 interface Athlete {
   id: number
   name: string
@@ -33,13 +40,22 @@ const CATS: Record<string, { label: string; abbr: string; color: string }> = {
   inspiring: { label: 'Inspiring Hero',   abbr: 'INSPIRE', color: '#6B21A8' },
   rising:    { label: 'Rising Star',      abbr: 'RISING',  color: '#0F7E45' },
 }
-
 const TIERS: Record<number, { label: string; short: string; color: string; bg: string }> = {
-  1: { label: 'Tier 1 · Core Fit',       short: 'T1', color: '#fff', bg: '#DA291C' },
-  2: { label: 'Tier 2 · Opportunistisch',short: 'T2', color: '#fff', bg: '#185FA5' },
-  3: { label: 'Tier 3 · Athletenfit',    short: 'T3', color: '#fff', bg: '#4A7C6F' },
-  0: { label: 'Low Fit',                 short: 'LF', color: '#fff', bg: '#888' },
+  1: { label: 'Tier 1 · Core Fit',        short: 'T1', color: '#fff', bg: '#DA291C' },
+  2: { label: 'Tier 2 · Opportunistisch', short: 'T2', color: '#fff', bg: '#185FA5' },
+  3: { label: 'Tier 3 · Athletenfit',     short: 'T3', color: '#fff', bg: '#4A7C6F' },
+  0: { label: 'Low Fit',                  short: 'LF', color: '#fff', bg: '#888' },
 }
+
+// Medal config: emoji + label + colors
+const MEDAL_TYPES = [
+  { key: 'olympic_gold',   emoji: '🏅', label: 'OL',  place: 'gold',   bg: 'linear-gradient(135deg,#FFD700,#FFA500)', shadow: 'rgba(255,180,0,0.5)',  text: '#7a4a00' },
+  { key: 'olympic_silver', emoji: '🏅', label: 'OL',  place: 'silver', bg: 'linear-gradient(135deg,#E8E8E8,#C0C0C0)', shadow: 'rgba(0,0,0,0.15)',     text: '#444' },
+  { key: 'olympic_bronze', emoji: '🏅', label: 'OL',  place: 'bronze', bg: 'linear-gradient(135deg,#CD7F32,#a05a0a)', shadow: 'rgba(150,80,0,0.3)',   text: '#fff' },
+  { key: 'wm_gold',        emoji: '🏆', label: 'WM',  place: 'gold',   bg: 'linear-gradient(135deg,#FFD700,#FFA500)', shadow: 'rgba(255,180,0,0.5)',  text: '#7a4a00' },
+  { key: 'wm_silver',      emoji: '🏆', label: 'WM',  place: 'silver', bg: 'linear-gradient(135deg,#E8E8E8,#C0C0C0)', shadow: 'rgba(0,0,0,0.15)',     text: '#444' },
+  { key: 'wm_bronze',      emoji: '🏆', label: 'WM',  place: 'bronze', bg: 'linear-gradient(135deg,#CD7F32,#a05a0a)', shadow: 'rgba(150,80,0,0.3)',   text: '#fff' },
+] as const
 
 const GENERAL_CRIT = [
   { key: 'strategy_fit',      label: 'Strategie Fit',              w: 1.0, hint: 'Auto via Sport-Tier' },
@@ -47,7 +63,6 @@ const GENERAL_CRIT = [
   { key: 'social_competence', label: 'Soziale Kompetenz / Events', w: 1.0, hint: 'Ausstrahlung bei Events' },
   { key: 'growth_potential',  label: 'Growth Potential',           w: 1.0, hint: 'Langfristiges Wachstumspotenzial' },
 ]
-
 const CRIT = [
   { key: 'brand_match',           label: 'Markenwerte-Match',        cat: 'hero',      w: 1.5, hint: 'Passt der Athlet zu Citroens Werten?', checkbox: false },
   { key: 'recognition',           label: 'Wiedererkennungswert',     cat: 'hero',      w: 1.5, hint: 'Bekanntheit in D und international',   checkbox: false },
@@ -66,7 +81,6 @@ const CRIT = [
   { key: 'youth_appeal',          label: 'Junge Zielgruppe 16-30',   cat: 'rising',    w: 1.0, hint: 'Relevanz fuer junge Fans',             checkbox: false },
   { key: 'engagement',            label: 'Content-Qualitaet',        cat: 'rising',    w: 1.5, hint: 'Qualitaet des Social-Contents',        checkbox: false },
 ]
-
 const COMP = [
   { key: 'social_reach_calc', label: 'Social-Reichweite', cat: 'rising',    w: 1.5 },
   { key: 'social_reach_calc', label: 'Social-Reichweite', cat: 'hero',      w: 1.0 },
@@ -79,7 +93,6 @@ const COMP = [
   { key: 'cost_eff_calc',     label: 'Kosten-Effizienz',  cat: 'para',      w: 0.75 },
   { key: 'cost_eff_calc',     label: 'Kosten-Effizienz',  cat: 'rising',    w: 0.75 },
 ]
-
 const BY_CAT: Record<string, typeof CRIT> = {}
 const BY_COMP: Record<string, typeof COMP> = {}
 for (const k of Object.keys(CATS)) {
@@ -87,30 +100,30 @@ for (const k of Object.keys(CATS)) {
   BY_COMP[k] = COMP.filter(c => c.cat === k)
 }
 
-const blankMedals = (): Medals => ({ gold: 0, silver: 0, bronze: 0 })
+const blankMedals = (): Medals => ({ olympic_gold:0, olympic_silver:0, olympic_bronze:0, wm_gold:0, wm_silver:0, wm_bronze:0 })
 
 function rgba(hex: string, a: number) {
-  const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16)
+  const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16)
   return `rgba(${r},${g},${b},${a})`
 }
 function initials(name: string) {
   return (name||'?').split(' ').map((w:string)=>w[0]||'').slice(0,2).join('').toUpperCase()
 }
 function fmtCost(v: string) {
-  const n = Number(v); if (!n) return '--'
-  return 'EUR ' + n.toLocaleString('de-DE')
+  const n=Number(v); if (!n) return '--'
+  return 'EUR '+n.toLocaleString('de-DE')
 }
 function fmtReach(v: string) {
-  const n = Number(v); if (!n) return '0'
-  if (n >= 1000000) return (n/1000000).toFixed(1)+'M'
-  if (n >= 1000) return Math.round(n/1000)+'k'
+  const n=Number(v); if (!n) return '0'
+  if (n>=1000000) return (n/1000000).toFixed(1)+'M'
+  if (n>=1000) return Math.round(n/1000)+'k'
   return String(n)
 }
 function totalReach(a: Athlete) {
   return (Number(a.reach_insta)||0)+(Number(a.reach_tiktok)||0)+(Number(a.reach_youtube)||0)
 }
 function computeReachScore(n: number): number {
-  if (n <= 0) return 1
+  if (n<=0) return 1
   const t: [number,number][] = [[0,1],[10000,2],[50000,3],[100000,4],[250000,5],[500000,6],[1000000,7],[2000000,8],[5000000,9],[10000000,10]]
   for (let i=1;i<t.length;i++) {
     if (n<=t[i][0]) {
@@ -132,13 +145,10 @@ function computeCostScore(v: string): number {
   return 1
 }
 function getComputed(a: Athlete) {
-  return {
-    social_reach_calc: computeReachScore(totalReach(a)),
-    cost_eff_calc: computeCostScore(a.cost),
-  }
+  return { social_reach_calc: computeReachScore(totalReach(a)), cost_eff_calc: computeCostScore(a.cost) }
 }
 function catAvg(scores: Scores, cat: string, computed: Record<string,number>): number {
-  let s=0, w=0
+  let s=0,w=0
   for (const c of BY_CAT[cat]) { s+=(scores[c.key]??5)*c.w; w+=c.w }
   for (const c of BY_COMP[cat]) { s+=(computed[c.key]??5)*c.w; w+=c.w }
   for (const c of GENERAL_CRIT) { s+=(scores[c.key]??5)*c.w; w+=c.w }
@@ -146,38 +156,32 @@ function catAvg(scores: Scores, cat: string, computed: Record<string,number>): n
 }
 function autoAssign(a: Athlete, computed: Record<string,number>): string {
   if (a.para_locked) return 'para'
-  let best='hero', bs=-1
-  for (const k of Object.keys(CATS)) {
-    const s=catAvg(a.scores,k,computed)
-    if(s>bs){bs=s;best=k}
-  }
+  let best='hero',bs=-1
+  for (const k of Object.keys(CATS)) { const s=catAvg(a.scores,k,computed); if(s>bs){bs=s;best=k} }
   return best
 }
 function blankScores(): Scores {
-  const s: Scores = {}
-  for (const c of CRIT) s[c.key] = c.checkbox ? 1 : 5
-  for (const c of GENERAL_CRIT) s[c.key] = 5
+  const s: Scores={}
+  for (const c of CRIT) s[c.key]=c.checkbox?1:5
+  for (const c of GENERAL_CRIT) s[c.key]=5
   return s
 }
 function blankAthlete(id: number): Athlete {
-  return { id, name:'', sport:'', image:null, image_position:15, cost:'', reach_insta:'', reach_tiktok:'', reach_youtube:'', comments:'', presse_storys:[], para_locked:false, sport_tier:3, medals:blankMedals(), scores:blankScores() }
+  return { id,name:'',sport:'',image:null,image_position:15,cost:'',reach_insta:'',reach_tiktok:'',reach_youtube:'',comments:'',presse_storys:[],para_locked:false,sport_tier:3,medals:blankMedals(),scores:blankScores() }
 }
-
 function compressImage(file: File): Promise<string> {
   return new Promise(resolve => {
-    const reader = new FileReader()
-    reader.onload = e => {
-      const img = new Image()
-      img.onload = () => {
-        const SIZE = 400
-        const ratio = Math.min(SIZE/img.width, SIZE/img.height, 1)
-        const canvas = document.createElement('canvas')
-        canvas.width = Math.round(img.width*ratio)
-        canvas.height = Math.round(img.height*ratio)
+    const reader=new FileReader()
+    reader.onload=e=>{
+      const img=new Image()
+      img.onload=()=>{
+        const SIZE=400,ratio=Math.min(SIZE/img.width,SIZE/img.height,1)
+        const canvas=document.createElement('canvas')
+        canvas.width=Math.round(img.width*ratio); canvas.height=Math.round(img.height*ratio)
         canvas.getContext('2d')!.drawImage(img,0,0,canvas.width,canvas.height)
-        resolve(canvas.toDataURL('image/jpeg', 0.65))
+        resolve(canvas.toDataURL('image/jpeg',0.65))
       }
-      img.src = e.target!.result as string
+      img.src=e.target!.result as string
     }
     reader.readAsDataURL(file)
   })
@@ -189,44 +193,38 @@ function CitroenLogo({ size=55 }: { size?: number }) {
 
 function MedalStickers({ medals }: { medals: Medals }) {
   const m = medals || blankMedals()
-  if (!m.gold && !m.silver && !m.bronze) return null
+  const hasAny = MEDAL_TYPES.some(t => (m[t.key as keyof Medals]||0) > 0)
+  if (!hasAny) return null
   return (
-    <div style={{display:'flex',gap:5,flexWrap:'wrap' as const}}>
-      {m.gold > 0 && (
-        <div style={{display:'flex',alignItems:'center',gap:3,padding:'3px 8px',borderRadius:20,background:'linear-gradient(135deg,#FFD700,#FFA500)',boxShadow:'0 1px 4px rgba(255,180,0,0.4)'}}>
-          <span style={{fontSize:13}}>🥇</span>
-          {m.gold > 1 && <span style={{fontSize:10,fontWeight:700,color:'#7a4a00'}}>×{m.gold}</span>}
-        </div>
-      )}
-      {m.silver > 0 && (
-        <div style={{display:'flex',alignItems:'center',gap:3,padding:'3px 8px',borderRadius:20,background:'linear-gradient(135deg,#E8E8E8,#C0C0C0)',boxShadow:'0 1px 4px rgba(0,0,0,0.15)'}}>
-          <span style={{fontSize:13}}>🥈</span>
-          {m.silver > 1 && <span style={{fontSize:10,fontWeight:700,color:'#555'}}>×{m.silver}</span>}
-        </div>
-      )}
-      {m.bronze > 0 && (
-        <div style={{display:'flex',alignItems:'center',gap:3,padding:'3px 8px',borderRadius:20,background:'linear-gradient(135deg,#CD7F32,#a05a0a)',boxShadow:'0 1px 4px rgba(150,80,0,0.3)'}}>
-          <span style={{fontSize:13}}>🥉</span>
-          {m.bronze > 1 && <span style={{fontSize:10,fontWeight:700,color:'#fff'}}>×{m.bronze}</span>}
-        </div>
-      )}
+    <div style={{display:'flex',gap:4,flexWrap:'wrap' as const}}>
+      {MEDAL_TYPES.map(t => {
+        const count = m[t.key as keyof Medals] || 0
+        if (!count) return null
+        return (
+          <div key={t.key} style={{display:'flex',alignItems:'center',gap:2,padding:'2px 7px',borderRadius:20,background:t.bg,boxShadow:`0 1px 4px ${t.shadow}`}}>
+            <span style={{fontSize:12}}>{t.emoji}</span>
+            <span style={{fontSize:9,fontWeight:800,color:t.text,letterSpacing:'0.04em'}}>{t.label}</span>
+            {count > 1 && <span style={{fontSize:9,fontWeight:700,color:t.text}}>×{count}</span>}
+          </div>
+        )
+      })}
     </div>
   )
 }
 
 function AthleteCard({ athlete, onClick }: { athlete: Athlete; onClick: () => void }) {
-  const computed = getComputed(athlete)
-  const cat = autoAssign(athlete, computed)
-  const info = CATS[cat]
-  const ini = initials(athlete.name)
-  const pos = athlete.image_position ?? 15
-  const tr = totalReach(athlete)
-  const hasMeta = athlete.cost || tr > 0
-  const isOlympian = (athlete.scores['olympic_participation'] ?? 1) >= 10
-  const tier = athlete.sport_tier ?? 3
-  const tierInfo = TIERS[tier] ?? TIERS[3]
-  const medals = athlete.medals || blankMedals()
-  const hasMedals = medals.gold > 0 || medals.silver > 0 || medals.bronze > 0
+  const computed=getComputed(athlete)
+  const cat=autoAssign(athlete,computed)
+  const info=CATS[cat]
+  const ini=initials(athlete.name)
+  const pos=athlete.image_position??15
+  const tr=totalReach(athlete)
+  const hasMeta=athlete.cost||tr>0
+  const isOlympian=(athlete.scores['olympic_participation']??1)>=10
+  const tier=athlete.sport_tier??3
+  const tierInfo=TIERS[tier]??TIERS[3]
+  const medals=athlete.medals||blankMedals()
+  const hasMedals=MEDAL_TYPES.some(t=>(medals[t.key as keyof Medals]||0)>0)
 
   return (
     <div onClick={onClick}
@@ -240,49 +238,44 @@ function AthleteCard({ athlete, onClick }: { athlete: Athlete; onClick: () => vo
           ? <img src={athlete.image} alt={athlete.name} style={{width:'100%',height:'100%',objectFit:'cover',objectPosition:`center ${pos}%`}}/>
           : <div style={{width:80,height:80,borderRadius:'50%',background:rgba(info.color,0.15),color:info.color,display:'flex',alignItems:'center',justifyContent:'center',fontSize:28,fontWeight:500}}>{ini}</div>
         }
-        {/* Top left badges */}
         <div style={{position:'absolute',top:8,left:8,display:'flex',gap:4,flexWrap:'wrap' as const}}>
           <div style={{fontSize:10,fontWeight:500,padding:'3px 8px',borderRadius:20,background:'rgba(255,255,255,0.93)',color:info.color}}>{info.label}</div>
-          {isOlympian && <div style={{fontSize:10,fontWeight:600,padding:'3px 8px',borderRadius:20,background:'rgba(255,255,255,0.93)',color:'#B8860B'}}>Olympia</div>}
-          {athlete.para_locked && <div style={{fontSize:10,fontWeight:600,padding:'3px 8px',borderRadius:20,background:'rgba(255,255,255,0.93)',color:'#185FA5'}}>Para</div>}
+          {isOlympian&&<div style={{fontSize:10,fontWeight:600,padding:'3px 8px',borderRadius:20,background:'rgba(255,255,255,0.93)',color:'#B8860B'}}>Olympia</div>}
+          {athlete.para_locked&&<div style={{fontSize:10,fontWeight:600,padding:'3px 8px',borderRadius:20,background:'rgba(255,255,255,0.93)',color:'#185FA5'}}>Para</div>}
         </div>
-        {/* Medal stickers bottom left */}
-        {hasMedals && (
+        {hasMedals&&(
           <div style={{position:'absolute',bottom:8,left:8}}>
             <MedalStickers medals={medals}/>
           </div>
         )}
-        {(athlete.presse_storys?.length > 0) && (
+        {(athlete.presse_storys?.length>0)&&(
           <div style={{position:'absolute',bottom:8,right:8,fontSize:10,fontWeight:600,padding:'3px 8px',borderRadius:20,background:'rgba(255,255,255,0.93)',color:'#555'}}>PR {athlete.presse_storys.length}</div>
         )}
       </div>
-
-      {/* Tier Strip */}
       <div style={{background:tierInfo.bg,padding:'4px 12px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
         <span style={{fontSize:9,fontWeight:700,color:tierInfo.color,letterSpacing:'0.08em',textTransform:'uppercase' as const}}>{tierInfo.label}</span>
         <span style={{fontSize:9,color:tierInfo.color,opacity:0.8}}>Fit: {athlete.scores['strategy_fit']??5}/10</span>
       </div>
-
       <div style={{padding:'12px 14px'}}>
         <div style={{fontSize:15,fontWeight:600,lineHeight:1.2,marginBottom:2}}>{athlete.name||'--'}</div>
         <div style={{fontSize:11,color:'#888',marginBottom:athlete.comments?6:hasMeta?8:10}}>{athlete.sport}</div>
-        {athlete.comments && (
+        {athlete.comments&&(
           <div style={{fontSize:11,color:'#666',fontStyle:'italic',marginBottom:8,padding:'5px 8px',background:'#f8f8f8',borderRadius:6,borderLeft:'2px solid #ddd'}}>
-            {athlete.comments.length > 60 ? athlete.comments.slice(0,60)+'...' : athlete.comments}
+            {athlete.comments.length>60?athlete.comments.slice(0,60)+'...':athlete.comments}
           </div>
         )}
-        {hasMeta && (
+        {hasMeta&&(
           <div style={{display:'flex',gap:8,marginBottom:10,padding:'6px 10px',background:'#f5f5f5',borderRadius:8,flexWrap:'wrap' as const,alignItems:'center'}}>
-            {athlete.cost && <span style={{fontSize:11,fontWeight:500,color:'#1a1a1a'}}>{fmtCost(athlete.cost)}</span>}
-            {athlete.cost && tr>0 && <div style={{width:1,background:'#e2e2e2',height:12}}/>}
-            {Number(athlete.reach_insta)>0 && <span style={{fontSize:10}}><span style={{color:'#E1306C',fontWeight:600}}>IG</span> <span style={{fontWeight:500}}>{fmtReach(athlete.reach_insta)}</span></span>}
-            {Number(athlete.reach_tiktok)>0 && <span style={{fontSize:10}}><span style={{color:'#555',fontWeight:600}}>TT</span> <span style={{fontWeight:500}}>{fmtReach(athlete.reach_tiktok)}</span></span>}
-            {Number(athlete.reach_youtube)>0 && <span style={{fontSize:10}}><span style={{color:'#FF0000',fontWeight:600}}>YT</span> <span style={{fontWeight:500}}>{fmtReach(athlete.reach_youtube)}</span></span>}
+            {athlete.cost&&<span style={{fontSize:11,fontWeight:500,color:'#1a1a1a'}}>{fmtCost(athlete.cost)}</span>}
+            {athlete.cost&&tr>0&&<div style={{width:1,background:'#e2e2e2',height:12}}/>}
+            {Number(athlete.reach_insta)>0&&<span style={{fontSize:10}}><span style={{color:'#E1306C',fontWeight:600}}>IG</span> <span style={{fontWeight:500}}>{fmtReach(athlete.reach_insta)}</span></span>}
+            {Number(athlete.reach_tiktok)>0&&<span style={{fontSize:10}}><span style={{color:'#555',fontWeight:600}}>TT</span> <span style={{fontWeight:500}}>{fmtReach(athlete.reach_tiktok)}</span></span>}
+            {Number(athlete.reach_youtube)>0&&<span style={{fontSize:10}}><span style={{color:'#FF0000',fontWeight:600}}>YT</span> <span style={{fontWeight:500}}>{fmtReach(athlete.reach_youtube)}</span></span>}
           </div>
         )}
         <div style={{borderTop:'0.5px solid #f0f0f0',paddingTop:10}}>
           {CAT_ORDER.map(k=>{
-            const c=CATS[k], s=catAvg(athlete.scores,k,computed), isM=k===cat
+            const c=CATS[k],s=catAvg(athlete.scores,k,computed),isM=k===cat
             return (
               <div key={k} style={{display:'flex',alignItems:'center',gap:7,marginBottom:5}}>
                 <div style={{fontSize:9,fontWeight:500,letterSpacing:'0.06em',width:52,flexShrink:0,color:isM?c.color:'#bbb'}}>{c.abbr}</div>
@@ -305,58 +298,56 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
   onDelete: () => void; onBack: () => void
 }) {
   const [form, setForm] = useState<Athlete>({
-    ...data,
-    scores: {...data.scores},
-    comments: data.comments || '',
-    presse_storys: data.presse_storys || [],
-    para_locked: data.para_locked || false,
-    sport_tier: data.sport_tier ?? 3,
-    medals: data.medals || blankMedals(),
+    ...data, scores:{...data.scores},
+    comments:data.comments||'',
+    presse_storys:data.presse_storys||[],
+    para_locked:data.para_locked||false,
+    sport_tier:data.sport_tier??3,
+    medals:data.medals||blankMedals(),
   })
-  const [saving, setSaving] = useState(false)
-  const [uploading, setUploading] = useState(false)
-  const [newStory, setNewStory] = useState({url:'',text:''})
+  const [saving,setSaving]=useState(false)
+  const [uploading,setUploading]=useState(false)
+  const [newStory,setNewStory]=useState({url:'',text:''})
 
-  const computed = getComputed(form)
-  const cat = autoAssign(form, computed)
-  const info = CATS[cat]
-  const pos = form.image_position ?? 15
-  const tierInfo = TIERS[form.sport_tier] ?? TIERS[3]
+  const computed=getComputed(form)
+  const cat=autoAssign(form,computed)
+  const info=CATS[cat]
+  const pos=form.image_position??15
+  const tierInfo=TIERS[form.sport_tier]??TIERS[3]
 
-  const updateScore = (key: string, val: number) => setForm(f=>({...f,scores:{...f.scores,[key]:val}}))
-  const updateField = (field: keyof Athlete, val: string) => setForm(f=>({...f,[field]:val}))
-  const updateMedal = (type: keyof Medals, val: number) => setForm(f=>({...f,medals:{...f.medals,[type]:Math.max(0,val)}}))
-
-  const handleTierChange = (tier: number) => {
-    const tierScores: Record<number,number> = {1:10,2:7,3:4,0:2}
-    setForm(f=>({...f,sport_tier:tier,scores:{...f.scores,strategy_fit:tierScores[tier]??5}}))
+  const updateScore=(key:string,val:number)=>setForm(f=>({...f,scores:{...f.scores,[key]:val}}))
+  const updateField=(field:keyof Athlete,val:string)=>setForm(f=>({...f,[field]:val}))
+  const updateMedal=(key:keyof Medals,val:number)=>setForm(f=>({...f,medals:{...f.medals,[key]:Math.max(0,val)}}))
+  const handleTierChange=(tier:number)=>{
+    const ts:Record<number,number>={1:10,2:7,3:4,0:2}
+    setForm(f=>({...f,sport_tier:tier,scores:{...f.scores,strategy_fit:ts[tier]??5}}))
   }
-
-  const addStory = () => {
-    if (!newStory.text.trim() && !newStory.url.trim()) return
-    const story: PressStory = {id:Date.now().toString(),url:newStory.url.trim(),text:newStory.text.trim()}
+  const addStory=()=>{
+    if (!newStory.text.trim()&&!newStory.url.trim()) return
+    const story:PressStory={id:Date.now().toString(),url:newStory.url.trim(),text:newStory.text.trim()}
     setForm(f=>({...f,presse_storys:[...(f.presse_storys||[]),story]}))
     setNewStory({url:'',text:''})
   }
-  const removeStory = (id: string) => setForm(f=>({...f,presse_storys:(f.presse_storys||[]).filter(s=>s.id!==id)}))
-
-  const handleImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]; if (!file) return
+  const removeStory=(id:string)=>setForm(f=>({...f,presse_storys:(f.presse_storys||[]).filter(s=>s.id!==id)}))
+  const handleImage=async(e:React.ChangeEvent<HTMLInputElement>)=>{
+    const file=e.target.files?.[0]; if (!file) return
     setUploading(true)
-    const b64 = await compressImage(file)
+    const b64=await compressImage(file)
     setForm(f=>({...f,image:b64,image_position:15}))
-    setUploading(false)
-    e.target.value=''
+    setUploading(false); e.target.value=''
+  }
+  const handleSave=async()=>{
+    if (!form.name.trim()){alert('Bitte Namen eingeben.');return}
+    setSaving(true); await onSave(form); setSaving(false)
   }
 
-  const handleSave = async () => {
-    if (!form.name.trim()) { alert('Bitte Namen eingeben.'); return }
-    setSaving(true)
-    await onSave(form)
-    setSaving(false)
-  }
+  const inp:React.CSSProperties={width:'100%',padding:'8px 10px',border:'1px solid #e2e2e2',borderRadius:8,fontSize:13,fontFamily:'inherit',outline:'none',background:'#fff'}
 
-  const inp: React.CSSProperties = {width:'100%',padding:'8px 10px',border:'1px solid #e2e2e2',borderRadius:8,fontSize:13,fontFamily:'inherit',outline:'none',background:'#fff'}
+  // Group medal types for editor
+  const medalGroups = [
+    { label: '🏅 Olympia / Paralympics', types: ['olympic_gold','olympic_silver','olympic_bronze'] as (keyof Medals)[], emojis: ['🥇','🥈','🥉'], sublabels: ['Gold','Silber','Bronze'] },
+    { label: '🏆 Weltmeisterschaft',     types: ['wm_gold','wm_silver','wm_bronze'] as (keyof Medals)[],     emojis: ['🥇','🥈','🥉'], sublabels: ['Gold','Silber','Bronze'] },
+  ]
 
   return (
     <div style={{maxWidth:680,margin:'0 auto',padding:'20px 24px'}}>
@@ -369,7 +360,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
         <div style={{fontSize:10,fontWeight:700,color:'#888',textTransform:'uppercase' as const,letterSpacing:'0.12em',marginBottom:12}}>Olympischer Sportarten Fit</div>
         <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8}}>
           {([1,2,3,0] as number[]).map(t=>{
-            const ti=TIERS[t], active=form.sport_tier===t
+            const ti=TIERS[t],active=form.sport_tier===t
             return (
               <div key={t} onClick={()=>handleTierChange(t)}
                 style={{padding:'8px 10px',borderRadius:8,border:`2px solid ${active?ti.bg:'#e2e2e2'}`,background:active?ti.bg:'#fff',cursor:'pointer',textAlign:'center' as const,transition:'all 0.15s'}}>
@@ -385,32 +376,31 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
         </div>
       </div>
 
-      {/* Medals Editor */}
+      {/* Medal Editor */}
       <div style={{marginBottom:16,padding:'14px 16px',background:'#fffbf0',borderRadius:12,border:'1px solid #fde8a0'}}>
-        <div style={{fontSize:10,fontWeight:700,color:'#B8860B',textTransform:'uppercase' as const,letterSpacing:'0.12em',marginBottom:12}}>Titel / Medaillen</div>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12}}>
-          {(['gold','silver','bronze'] as (keyof Medals)[]).map(type=>{
-            const emoji = type==='gold'?'🥇':type==='silver'?'🥈':'🥉'
-            const label = type==='gold'?'Gold-Titel':type==='silver'?'Silber-Titel':'Bronze-Titel'
-            return (
-              <div key={type}>
-                <label style={{display:'block',fontSize:11,color:'#888',marginBottom:4}}>{emoji} {label}</label>
-                <div style={{display:'flex',alignItems:'center',gap:6}}>
-                  <button onClick={()=>updateMedal(type,Math.max(0,(form.medals?.[type]||0)-1))}
-                    style={{width:28,height:28,borderRadius:6,border:'1px solid #e2e2e2',background:'#fff',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center'}}>−</button>
-                  <div style={{flex:1,textAlign:'center' as const,fontSize:18,fontWeight:700,color:'#1a1a1a'}}>{form.medals?.[type]||0}</div>
-                  <button onClick={()=>updateMedal(type,(form.medals?.[type]||0)+1)}
-                    style={{width:28,height:28,borderRadius:6,border:'1px solid #e2e2e2',background:'#fff',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center'}}>+</button>
+        <div style={{fontSize:10,fontWeight:700,color:'#B8860B',textTransform:'uppercase' as const,letterSpacing:'0.12em',marginBottom:14}}>Titel & Medaillen</div>
+        {medalGroups.map(group=>(
+          <div key={group.label} style={{marginBottom:14}}>
+            <div style={{fontSize:11,fontWeight:600,color:'#888',marginBottom:8}}>{group.label}</div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10}}>
+              {group.types.map((key,i)=>(
+                <div key={key}>
+                  <label style={{display:'block',fontSize:11,color:'#aaa',marginBottom:4}}>{group.emojis[i]} {group.sublabels[i]}</label>
+                  <div style={{display:'flex',alignItems:'center',gap:6}}>
+                    <button onClick={()=>updateMedal(key,Math.max(0,(form.medals?.[key]||0)-1))}
+                      style={{width:26,height:26,borderRadius:6,border:'1px solid #e2e2e2',background:'#fff',cursor:'pointer',fontSize:14,lineHeight:1}}>−</button>
+                    <div style={{flex:1,textAlign:'center' as const,fontSize:17,fontWeight:700}}>{form.medals?.[key]||0}</div>
+                    <button onClick={()=>updateMedal(key,(form.medals?.[key]||0)+1)}
+                      style={{width:26,height:26,borderRadius:6,border:'1px solid #e2e2e2',background:'#fff',cursor:'pointer',fontSize:14,lineHeight:1}}>+</button>
+                  </div>
                 </div>
-              </div>
-            )
-          })}
-        </div>
-        {(form.medals?.gold||0)+(form.medals?.silver||0)+(form.medals?.bronze||0) > 0 && (
-          <div style={{marginTop:12,display:'flex',gap:6}}>
-            <MedalStickers medals={form.medals}/>
+              ))}
+            </div>
           </div>
-        )}
+        ))}
+        <div style={{marginTop:8,display:'flex',gap:5,flexWrap:'wrap' as const}}>
+          <MedalStickers medals={form.medals}/>
+        </div>
       </div>
 
       {/* Para Lock */}
@@ -451,9 +441,9 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
             ? <img src={form.image} alt={form.name} style={{width:'100%',height:'100%',objectFit:'cover',objectPosition:`center ${pos}%`}}/>
             : <div style={{textAlign:'center',color:'#bbb'}}><div style={{fontSize:48,marginBottom:8}}>👤</div><div style={{fontSize:12}}>Noch kein Foto</div></div>
           }
-          {uploading && <div style={{position:'absolute',inset:0,background:'rgba(255,255,255,0.85)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,color:'#888'}}>Wird verarbeitet...</div>}
+          {uploading&&<div style={{position:'absolute',inset:0,background:'rgba(255,255,255,0.85)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,color:'#888'}}>Wird verarbeitet...</div>}
         </div>
-        {form.image && (
+        {form.image&&(
           <div style={{marginBottom:10,padding:'10px 14px',background:'#f8f8f8',borderRadius:10,border:'1px solid #ececec'}}>
             <div style={{display:'flex',justifyContent:'space-between',marginBottom:6}}>
               <label style={{fontSize:11,color:'#888'}}>Bildausschnitt</label>
@@ -470,7 +460,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
             Foto hochladen
             <input type="file" accept="image/*" onChange={handleImage} style={{display:'none'}}/>
           </label>
-          {form.image && <button onClick={()=>setForm(f=>({...f,image:null}))} style={{background:'none',border:'none',color:'#aaa',fontSize:12,cursor:'pointer',padding:0,fontFamily:'inherit'}}>Bild entfernen</button>}
+          {form.image&&<button onClick={()=>setForm(f=>({...f,image:null}))} style={{background:'none',border:'none',color:'#aaa',fontSize:12,cursor:'pointer',padding:0,fontFamily:'inherit'}}>Bild entfernen</button>}
         </div>
       </div>
 
@@ -522,7 +512,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
         </div>
         <div>
           <label style={{display:'block',fontSize:11,color:'#888',marginBottom:4}}>Kommentare / Notizen</label>
-          <textarea value={form.comments} onChange={e=>updateField('comments',e.target.value)} placeholder="Interne Notizen zum Athleten..." rows={3} style={{...inp,resize:'vertical',lineHeight:'1.5'}}/>
+          <textarea value={form.comments} onChange={e=>updateField('comments',e.target.value)} placeholder="Interne Notizen..." rows={3} style={{...inp,resize:'vertical',lineHeight:'1.5'}}/>
         </div>
       </div>
 
@@ -531,20 +521,20 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
         <div style={{fontSize:10,fontWeight:700,color:'#c47800',textTransform:'uppercase' as const,letterSpacing:'0.12em',marginBottom:14}}>PR / Presse Stories</div>
         {(form.presse_storys||[]).map(story=>(
           <div key={story.id} style={{marginBottom:10,padding:'10px 12px',background:'#fff',borderRadius:8,border:'1px solid #ececec',position:'relative'}}>
-            {story.url && <a href={story.url} target="_blank" rel="noopener noreferrer" style={{fontSize:11,color:'#c47800',fontWeight:600,wordBreak:'break-all' as const,display:'block',marginBottom:story.text?4:0}}>{story.url}</a>}
-            {story.text && <div style={{fontSize:12,color:'#444',lineHeight:1.5}}>{story.text}</div>}
+            {story.url&&<a href={story.url} target="_blank" rel="noopener noreferrer" style={{fontSize:11,color:'#c47800',fontWeight:600,wordBreak:'break-all' as const,display:'block',marginBottom:story.text?4:0}}>{story.url}</a>}
+            {story.text&&<div style={{fontSize:12,color:'#444',lineHeight:1.5}}>{story.text}</div>}
             <button onClick={()=>removeStory(story.id)} style={{position:'absolute',top:8,right:10,background:'none',border:'none',color:'#ccc',fontSize:16,cursor:'pointer',padding:0}}>x</button>
           </div>
         ))}
         <div style={{background:'#fff',borderRadius:8,border:'1px solid #ececec',padding:'10px 12px'}}>
-          <div style={{fontSize:10,color:'#aaa',marginBottom:8,textTransform:'uppercase' as const,letterSpacing:'0.08em'}}>Neue Story hinzufuegen</div>
-          <input type="text" value={newStory.url} onChange={e=>setNewStory(s=>({...s,url:e.target.value}))} placeholder="URL / Link" style={{...inp,marginBottom:8,fontSize:12}}/>
+          <div style={{fontSize:10,color:'#aaa',marginBottom:8,textTransform:'uppercase' as const,letterSpacing:'0.08em'}}>Neue Story</div>
+          <input type="text" value={newStory.url} onChange={e=>setNewStory(s=>({...s,url:e.target.value}))} placeholder="URL" style={{...inp,marginBottom:8,fontSize:12}}/>
           <textarea value={newStory.text} onChange={e=>setNewStory(s=>({...s,text:e.target.value}))} placeholder="Text..." rows={2} style={{...inp,marginBottom:8,resize:'vertical' as const,fontSize:12,lineHeight:'1.5'}}/>
           <button onClick={addStory} style={{background:'#c47800',color:'#fff',border:'none',padding:'7px 16px',borderRadius:6,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>+ Hinzufuegen</button>
         </div>
       </div>
 
-      {/* General criteria */}
+      {/* General */}
       <div style={{marginBottom:24,padding:'14px 16px',background:'#f0f4ff',borderRadius:12,border:'1px solid #dde5ff'}}>
         <div style={{fontSize:10,fontWeight:700,color:'#4466cc',textTransform:'uppercase' as const,letterSpacing:'0.12em',marginBottom:14}}>Allgemeine Bewertung</div>
         {GENERAL_CRIT.map(cr=>(
@@ -552,7 +542,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}}>
               <label style={{fontSize:12,fontWeight:500,color:'#1a1a1a'}} title={cr.hint}>
                 {cr.label}
-                {cr.key==='strategy_fit' && <span style={{fontSize:10,color:tierInfo.bg,marginLeft:6,fontWeight:600}}>auto via {tierInfo.short}</span>}
+                {cr.key==='strategy_fit'&&<span style={{fontSize:10,color:tierInfo.bg,marginLeft:6,fontWeight:600}}>auto via {tierInfo.short}</span>}
                 <span style={{fontSize:10,color:'#aab',marginLeft:4}}>x{cr.w}</span>
               </label>
               <span style={{fontSize:12,fontWeight:600,color:'#4466cc',minWidth:16,textAlign:'right' as const}}>{form.scores[cr.key]??5}</span>
@@ -620,7 +610,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
       })}
 
       <div style={{display:'flex',gap:8,paddingTop:16,borderTop:'1px solid #ececec',marginTop:8}}>
-        {!isNew && <button onClick={onDelete} style={{background:'none',border:'1px solid #ececec',color:'#bbb',padding:'9px 16px',borderRadius:8,fontSize:13,cursor:'pointer',fontFamily:'inherit'}}>Loeschen</button>}
+        {!isNew&&<button onClick={onDelete} style={{background:'none',border:'1px solid #ececec',color:'#bbb',padding:'9px 16px',borderRadius:8,fontSize:13,cursor:'pointer',fontFamily:'inherit'}}>Loeschen</button>}
         <button onClick={onBack} style={{background:'none',border:'1px solid #ddd',color:'#1a1a1a',padding:'9px 16px',borderRadius:8,fontSize:13,cursor:'pointer',fontFamily:'inherit',marginLeft:isNew?'auto':0}}>Abbrechen</button>
         <button onClick={handleSave} disabled={saving||uploading} style={{background:RED,color:'#fff',border:'none',padding:'9px 24px',borderRadius:8,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'inherit',opacity:(saving||uploading)?0.7:1}}>
           {saving?'Speichern...':'Speichern'}
@@ -631,21 +621,21 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
 }
 
 export default function Home() {
-  const [athletes, setAthletes] = useState<Athlete[]>([])
-  const [view, setView] = useState<'grid'|'edit'>('grid')
-  const [editData, setEditData] = useState<Athlete|null>(null)
-  const [loaded, setLoaded] = useState(false)
-  const [isLive, setIsLive] = useState(false)
+  const [athletes,setAthletes]=useState<Athlete[]>([])
+  const [view,setView]=useState<'grid'|'edit'>('grid')
+  const [editData,setEditData]=useState<Athlete|null>(null)
+  const [loaded,setLoaded]=useState(false)
+  const [isLive,setIsLive]=useState(false)
 
   useEffect(()=>{
     async function load() {
       try {
-        const {data,error} = await supabase.from('athletes').select('*').order('created_at',{ascending:true})
+        const {data,error}=await supabase.from('athletes').select('*').order('created_at',{ascending:true})
         if (data&&!error) {
           setAthletes(data.map(a=>({
             reach_insta:'',reach_tiktok:'',reach_youtube:'',
             image_position:15,comments:'',presse_storys:[],
-            para_locked:false,sport_tier:3,medals:{gold:0,silver:0,bronze:0},...a
+            para_locked:false,sport_tier:3,medals:blankMedals(),...a
           })))
           setIsLive(true)
         } else setAthletes([])
@@ -655,23 +645,23 @@ export default function Home() {
     load()
   },[])
 
-  const openAdd = () => { setEditData(blankAthlete(Date.now())); setView('edit') }
-  const openEdit = (a: Athlete) => { setEditData({...a,scores:{...a.scores}}); setView('edit') }
-  const goBack = () => { setView('grid'); setEditData(null) }
+  const openAdd=()=>{setEditData(blankAthlete(Date.now()));setView('edit')}
+  const openEdit=(a:Athlete)=>{setEditData({...a,scores:{...a.scores}});setView('edit')}
+  const goBack=()=>{setView('grid');setEditData(null)}
 
-  const handleSave = async (data: Athlete) => {
+  const handleSave=async(data:Athlete)=>{
     try {
-      const {error} = await supabase.from('athletes').upsert(data)
-      if (error) { alert('Fehler beim Speichern: '+error.message); return }
+      const {error}=await supabase.from('athletes').upsert(data)
+      if (error){alert('Fehler: '+error.message);return}
       setAthletes(prev=>{const idx=prev.findIndex(a=>a.id===data.id);return idx>=0?prev.map(a=>a.id===data.id?data:a):[...prev,data]})
       goBack()
-    } catch { alert('Unbekannter Fehler beim Speichern.') }
+    } catch {alert('Unbekannter Fehler.')}
   }
 
-  const handleDelete = async () => {
-    if (!editData||!confirm('Athleten wirklich loeschen?')) return
+  const handleDelete=async()=>{
+    if (!editData||!confirm('Wirklich loeschen?')) return
     try {
-      const {error} = await supabase.from('athletes').delete().eq('id',editData.id)
+      const {error}=await supabase.from('athletes').delete().eq('id',editData.id)
       if (!error) setAthletes(prev=>prev.filter(a=>a.id!==editData.id))
     } catch {}
     goBack()
@@ -679,9 +669,9 @@ export default function Home() {
 
   if (!loaded) return <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',color:'#888',fontSize:14}}>Lade...</div>
 
-  const grouped: Record<string,Athlete[]> = {hero:[],medal:[],para:[],inspiring:[],rising:[]}
+  const grouped:Record<string,Athlete[]>={hero:[],medal:[],para:[],inspiring:[],rising:[]}
   for (const a of athletes) {
-    const cat = autoAssign(a,getComputed(a))
+    const cat=autoAssign(a,getComputed(a))
     if (grouped[cat]) grouped[cat].push(a)
   }
   for (const k of CAT_ORDER) {
@@ -700,13 +690,10 @@ export default function Home() {
           <div style={{width:7,height:7,borderRadius:'50%',background:isLive?'#22c55e':RED,boxShadow:isLive?'0 0 0 2px rgba(34,197,94,0.3)':'none'}}/>
           <span style={{fontSize:11,fontWeight:500,color:isLive?'#16a34a':RED}}>{isLive?'Live':'Offline'}</span>
         </div>
-        {view==='grid' && (
+        {view==='grid'&&(
           <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:8}}>
             <div style={{display:'flex',gap:5}}>
-              {([1,2,3,0] as number[]).map(t=>{
-                const ti=TIERS[t]
-                return <div key={t} style={{fontSize:9,fontWeight:700,padding:'3px 7px',borderRadius:5,background:ti.bg,color:ti.color}}>{ti.short}</div>
-              })}
+              {([1,2,3,0] as number[]).map(t=>{const ti=TIERS[t];return <div key={t} style={{fontSize:9,fontWeight:700,padding:'3px 7px',borderRadius:5,background:ti.bg,color:ti.color}}>{ti.short}</div>})}
             </div>
             <button onClick={openAdd} style={{display:'flex',alignItems:'center',gap:6,background:RED,color:'#fff',border:'none',padding:'9px 18px',borderRadius:8,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>
               + Athlet hinzufuegen
@@ -722,15 +709,11 @@ export default function Home() {
               <div style={{fontSize:11,color:'#bbb',textTransform:'uppercase' as const,letterSpacing:'0.14em',marginBottom:2}}>Citroen - Road to LA28</div>
               <div style={{fontSize:24,fontWeight:700,color:'#1a1a1a',letterSpacing:'-0.02em'}}>Athlete Squad</div>
             </div>
-            <div style={{display:'flex',gap:10}}>
+            <div style={{display:'flex',gap:8,alignItems:'center'}}>
+              <div style={{fontSize:10,color:'#888',marginRight:4}}>🏅 Olympia &nbsp; 🏆 WM</div>
               {([1,2,3,0] as number[]).map(t=>{
-                const ti=TIERS[t], count=athletes.filter(a=>(a.sport_tier??3)===t).length
-                return (
-                  <div key={t} style={{textAlign:'center' as const}}>
-                    <div style={{fontSize:9,fontWeight:700,padding:'3px 8px',borderRadius:5,background:ti.bg,color:ti.color,marginBottom:2}}>{ti.label}</div>
-                    <div style={{fontSize:10,color:'#888'}}>{count} Athleten</div>
-                  </div>
-                )
+                const ti=TIERS[t],count=athletes.filter(a=>(a.sport_tier??3)===t).length
+                return <div key={t} style={{textAlign:'center' as const}}><div style={{fontSize:9,fontWeight:700,padding:'2px 7px',borderRadius:5,background:ti.bg,color:ti.color,marginBottom:2}}>{ti.short}</div><div style={{fontSize:10,color:'#888'}}>{count}</div></div>
               })}
             </div>
           </div>
@@ -752,7 +735,7 @@ export default function Home() {
                         <AthleteCard athlete={a} onClick={()=>openEdit(a)}/>
                       </div>
                     ))}
-                    {list.length===0 && (
+                    {list.length===0&&(
                       <div style={{textAlign:'center' as const,padding:'40px 16px',color:'#ccc',fontSize:12,border:'1px dashed #ddd',borderRadius:12,margin:'8px 0'}}>
                         Noch kein Athlet
                       </div>
