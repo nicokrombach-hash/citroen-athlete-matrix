@@ -33,6 +33,9 @@ interface Athlete {
   offer_pdf_name: string
   offer_rating: number
   offer_summary: string
+  offer_duration: string
+  offer_citroen_leistung: string
+  offer_athlete_leistung: string
   scores: Scores
 }
 
