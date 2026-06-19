@@ -28,6 +28,11 @@ interface Athlete {
   para_locked: boolean
   sport_tier: number
   medals: Medals
+  status: string
+  offer_pdf: string | null
+  offer_pdf_name: string
+  offer_rating: number
+  offer_summary: string
   scores: Scores
 }
 
@@ -47,14 +52,39 @@ const TIERS: Record<number, { label: string; short: string; color: string; bg: s
   0: { label: 'Low Fit',                  short: 'LF', color: '#fff', bg: '#888' },
 }
 
-// Medal config: emoji + label + colors
+const STATUS_OPTIONS = [
+  { key: 'Kein Kontakt',          color: '#888888', bg: '#f0f0f0' },
+  { key: 'Gespräche laufen',      color: '#185FA5', bg: '#e8f0fe' },
+  { key: 'Angebot liegt vor',     color: '#B8860B', bg: '#fff8e8' },
+  { key: 'Abgelehnt',             color: '#DA291C', bg: '#fdecea' },
+  { key: 'Aktiver Squad Member',  color: '#0F7E45', bg: '#e8f5ee' },
+] as const
+
+const RATING_SCALE: Record<number, { bg: string; label: string }> = {
+  1: { bg: '#DA291C', label: 'Schlecht' },
+  2: { bg: '#E8780A', label: 'Eher schlecht' },
+  3: { bg: '#D4A017', label: 'Okay' },
+  4: { bg: '#7CB342', label: 'Gut' },
+  5: { bg: '#0F7E45', label: 'Sehr gut' },
+}
+
+// 6 Team-Accounts -- BITTE ANPASSEN! Nutzername/Passwort hier direkt im Code aendern.
+const ACCOUNTS: { user: string; pass: string; name: string }[] = [
+  { user: 'Nico',        pass: 'Citroen2026!', name: 'Nico' },
+  { user: 'Paul', pass: 'Squad2026!1',    name: 'Paul' },
+  { user: 'Timo', pass: 'Squad2026!2',    name: 'Timo' },
+  { user: 'Lia', pass: 'Squad2026!'3,    name: 'Lia' },
+  { user: 'Anna', pass: 'Squad2026!4',    name: 'Anna' },
+  { user: 'Mitja', pass: 'Squad2026!5',    name: 'Mitja' },
+]
+
 const MEDAL_TYPES = [
-  { key: 'olympic_gold',   emoji: '🏅', label: 'OL',  place: 'gold',   bg: 'linear-gradient(135deg,#FFD700,#FFA500)', shadow: 'rgba(255,180,0,0.5)',  text: '#7a4a00' },
-  { key: 'olympic_silver', emoji: '🏅', label: 'OL',  place: 'silver', bg: 'linear-gradient(135deg,#E8E8E8,#C0C0C0)', shadow: 'rgba(0,0,0,0.15)',     text: '#444' },
-  { key: 'olympic_bronze', emoji: '🏅', label: 'OL',  place: 'bronze', bg: 'linear-gradient(135deg,#CD7F32,#a05a0a)', shadow: 'rgba(150,80,0,0.3)',   text: '#fff' },
-  { key: 'wm_gold',        emoji: '🏆', label: 'WM',  place: 'gold',   bg: 'linear-gradient(135deg,#FFD700,#FFA500)', shadow: 'rgba(255,180,0,0.5)',  text: '#7a4a00' },
-  { key: 'wm_silver',      emoji: '🏆', label: 'WM',  place: 'silver', bg: 'linear-gradient(135deg,#E8E8E8,#C0C0C0)', shadow: 'rgba(0,0,0,0.15)',     text: '#444' },
-  { key: 'wm_bronze',      emoji: '🏆', label: 'WM',  place: 'bronze', bg: 'linear-gradient(135deg,#CD7F32,#a05a0a)', shadow: 'rgba(150,80,0,0.3)',   text: '#fff' },
+  { key: 'olympic_gold',   emoji: '🏅', label: 'OL', place: 'gold',   bg: 'linear-gradient(135deg,#FFD700,#FFA500)', shadow: 'rgba(255,180,0,0.5)',  text: '#7a4a00' },
+  { key: 'olympic_silver', emoji: '🏅', label: 'OL', place: 'silver', bg: 'linear-gradient(135deg,#E8E8E8,#C0C0C0)', shadow: 'rgba(0,0,0,0.15)',     text: '#444' },
+  { key: 'olympic_bronze', emoji: '🏅', label: 'OL', place: 'bronze', bg: 'linear-gradient(135deg,#CD7F32,#a05a0a)', shadow: 'rgba(150,80,0,0.3)',   text: '#fff' },
+  { key: 'wm_gold',        emoji: '🏆', label: 'WM', place: 'gold',   bg: 'linear-gradient(135deg,#FFD700,#FFA500)', shadow: 'rgba(255,180,0,0.5)',  text: '#7a4a00' },
+  { key: 'wm_silver',      emoji: '🏆', label: 'WM', place: 'silver', bg: 'linear-gradient(135deg,#E8E8E8,#C0C0C0)', shadow: 'rgba(0,0,0,0.15)',     text: '#444' },
+  { key: 'wm_bronze',      emoji: '🏆', label: 'WM', place: 'bronze', bg: 'linear-gradient(135deg,#CD7F32,#a05a0a)', shadow: 'rgba(150,80,0,0.3)',   text: '#fff' },
 ] as const
 
 const GENERAL_CRIT = [
@@ -167,7 +197,12 @@ function blankScores(): Scores {
   return s
 }
 function blankAthlete(id: number): Athlete {
-  return { id,name:'',sport:'',image:null,image_position:15,cost:'',reach_insta:'',reach_tiktok:'',reach_youtube:'',comments:'',presse_storys:[],para_locked:false,sport_tier:3,medals:blankMedals(),scores:blankScores() }
+  return {
+    id,name:'',sport:'',image:null,image_position:15,cost:'',reach_insta:'',reach_tiktok:'',reach_youtube:'',
+    comments:'',presse_storys:[],para_locked:false,sport_tier:3,medals:blankMedals(),
+    status:'Kein Kontakt',offer_pdf:null,offer_pdf_name:'',offer_rating:0,offer_summary:'',
+    scores:blankScores()
+  }
 }
 function compressImage(file: File): Promise<string> {
   return new Promise(resolve => {
@@ -183,6 +218,14 @@ function compressImage(file: File): Promise<string> {
       }
       img.src=e.target!.result as string
     }
+    reader.readAsDataURL(file)
+  })
+}
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result as string)
+    reader.onerror = reject
     reader.readAsDataURL(file)
   })
 }
@@ -212,6 +255,45 @@ function MedalStickers({ medals }: { medals: Medals }) {
   )
 }
 
+function LoginScreen({ onLogin }: { onLogin: (name: string) => void }) {
+  const [user, setUser] = useState('')
+  const [pass, setPass] = useState('')
+  const [error, setError] = useState('')
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    const found = ACCOUNTS.find(a => a.user === user.trim() && a.pass === pass)
+    if (found) {
+      try { localStorage.setItem('citroen_auth', JSON.stringify({ user: found.user, name: found.name })) } catch {}
+      onLogin(found.name)
+    } else {
+      setError('Benutzername oder Passwort falsch.')
+    }
+  }
+
+  return (
+    <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'#fafafa'}}>
+      <form onSubmit={handleSubmit} style={{background:'#fff',padding:'40px 36px',borderRadius:16,boxShadow:'0 4px 24px rgba(0,0,0,0.08)',width:340,border:'1px solid #ececec'}}>
+        <div style={{display:'flex',justifyContent:'center',marginBottom:18}}><CitroenLogo size={50}/></div>
+        <div style={{textAlign:'center' as const,marginBottom:26}}>
+          <div style={{fontSize:11,color:RED,letterSpacing:'0.15em',textTransform:'uppercase' as const,fontWeight:600}}>Citroen</div>
+          <div style={{fontSize:18,fontWeight:700}}>Athlete Squad Matrix</div>
+        </div>
+        <label style={{display:'block',fontSize:11,color:'#888',marginBottom:4}}>Benutzername</label>
+        <input value={user} onChange={e=>setUser(e.target.value)} autoFocus
+          style={{width:'100%',padding:'9px 12px',border:'1px solid #e2e2e2',borderRadius:8,fontSize:13,marginBottom:14,fontFamily:'inherit',outline:'none'}}/>
+        <label style={{display:'block',fontSize:11,color:'#888',marginBottom:4}}>Passwort</label>
+        <input type="password" value={pass} onChange={e=>setPass(e.target.value)}
+          style={{width:'100%',padding:'9px 12px',border:'1px solid #e2e2e2',borderRadius:8,fontSize:13,marginBottom:16,fontFamily:'inherit',outline:'none'}}/>
+        {error && <div style={{fontSize:12,color:RED,marginBottom:14}}>{error}</div>}
+        <button type="submit" style={{width:'100%',background:RED,color:'#fff',border:'none',padding:'11px',borderRadius:8,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>
+          Anmelden
+        </button>
+      </form>
+    </div>
+  )
+}
+
 function AthleteCard({ athlete, onClick }: { athlete: Athlete; onClick: () => void }) {
   const computed=getComputed(athlete)
   const cat=autoAssign(athlete,computed)
@@ -219,12 +301,14 @@ function AthleteCard({ athlete, onClick }: { athlete: Athlete; onClick: () => vo
   const ini=initials(athlete.name)
   const pos=athlete.image_position??15
   const tr=totalReach(athlete)
-  const hasMeta=athlete.cost||tr>0
+  const hasMeta=athlete.cost||tr>0||athlete.offer_rating>0
   const isOlympian=(athlete.scores['olympic_participation']??1)>=10
   const tier=athlete.sport_tier??3
   const tierInfo=TIERS[tier]??TIERS[3]
   const medals=athlete.medals||blankMedals()
   const hasMedals=MEDAL_TYPES.some(t=>(medals[t.key as keyof Medals]||0)>0)
+  const statusInfo = STATUS_OPTIONS.find(s=>s.key===athlete.status) ?? STATUS_OPTIONS[0]
+  const ratingInfo = athlete.offer_rating>0 ? RATING_SCALE[athlete.offer_rating] : null
 
   return (
     <div onClick={onClick}
@@ -252,10 +336,16 @@ function AthleteCard({ athlete, onClick }: { athlete: Athlete; onClick: () => vo
           <div style={{position:'absolute',bottom:8,right:8,fontSize:10,fontWeight:600,padding:'3px 8px',borderRadius:20,background:'rgba(255,255,255,0.93)',color:'#555'}}>PR {athlete.presse_storys.length}</div>
         )}
       </div>
+
       <div style={{background:tierInfo.bg,padding:'4px 12px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
         <span style={{fontSize:9,fontWeight:700,color:tierInfo.color,letterSpacing:'0.08em',textTransform:'uppercase' as const}}>{tierInfo.label}</span>
         <span style={{fontSize:9,color:tierInfo.color,opacity:0.8}}>Fit: {athlete.scores['strategy_fit']??5}/10</span>
       </div>
+
+      <div style={{background:statusInfo.bg,padding:'4px 12px',borderBottom:`1px solid ${rgba(statusInfo.color,0.2)}`}}>
+        <span style={{fontSize:10,fontWeight:700,color:statusInfo.color,letterSpacing:'0.02em'}}>● {statusInfo.key}</span>
+      </div>
+
       <div style={{padding:'12px 14px'}}>
         <div style={{fontSize:15,fontWeight:600,lineHeight:1.2,marginBottom:2}}>{athlete.name||'--'}</div>
         <div style={{fontSize:11,color:'#888',marginBottom:athlete.comments?6:hasMeta?8:10}}>{athlete.sport}</div>
@@ -266,6 +356,12 @@ function AthleteCard({ athlete, onClick }: { athlete: Athlete; onClick: () => vo
         )}
         {hasMeta&&(
           <div style={{display:'flex',gap:8,marginBottom:10,padding:'6px 10px',background:'#f5f5f5',borderRadius:8,flexWrap:'wrap' as const,alignItems:'center'}}>
+            {ratingInfo && (
+              <span style={{fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:12,background:ratingInfo.bg,color:'#fff'}}>
+                P/L {athlete.offer_rating}/5
+              </span>
+            )}
+            {ratingInfo && athlete.cost && <div style={{width:1,background:'#e2e2e2',height:12}}/>}
             {athlete.cost&&<span style={{fontSize:11,fontWeight:500,color:'#1a1a1a'}}>{fmtCost(athlete.cost)}</span>}
             {athlete.cost&&tr>0&&<div style={{width:1,background:'#e2e2e2',height:12}}/>}
             {Number(athlete.reach_insta)>0&&<span style={{fontSize:10}}><span style={{color:'#E1306C',fontWeight:600}}>IG</span> <span style={{fontWeight:500}}>{fmtReach(athlete.reach_insta)}</span></span>}
@@ -304,9 +400,15 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
     para_locked:data.para_locked||false,
     sport_tier:data.sport_tier??3,
     medals:data.medals||blankMedals(),
+    status:data.status||'Kein Kontakt',
+    offer_pdf:data.offer_pdf||null,
+    offer_pdf_name:data.offer_pdf_name||'',
+    offer_rating:data.offer_rating??0,
+    offer_summary:data.offer_summary||'',
   })
   const [saving,setSaving]=useState(false)
   const [uploading,setUploading]=useState(false)
+  const [uploadingPdf,setUploadingPdf]=useState(false)
   const [newStory,setNewStory]=useState({url:'',text:''})
 
   const computed=getComputed(form)
@@ -314,6 +416,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
   const info=CATS[cat]
   const pos=form.image_position??15
   const tierInfo=TIERS[form.sport_tier]??TIERS[3]
+  const statusInfo = STATUS_OPTIONS.find(s=>s.key===form.status) ?? STATUS_OPTIONS[0]
 
   const updateScore=(key:string,val:number)=>setForm(f=>({...f,scores:{...f.scores,[key]:val}}))
   const updateField=(field:keyof Athlete,val:string)=>setForm(f=>({...f,[field]:val}))
@@ -336,6 +439,14 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
     setForm(f=>({...f,image:b64,image_position:15}))
     setUploading(false); e.target.value=''
   }
+  const handlePdfUpload=async(e:React.ChangeEvent<HTMLInputElement>)=>{
+    const file=e.target.files?.[0]; if (!file) return
+    if (file.size > 4*1024*1024) { alert('Datei zu gross (max. 4 MB). Bitte komprimieren oder verkleinern.'); e.target.value=''; return }
+    setUploadingPdf(true)
+    const b64=await fileToBase64(file)
+    setForm(f=>({...f,offer_pdf:b64,offer_pdf_name:file.name}))
+    setUploadingPdf(false); e.target.value=''
+  }
   const handleSave=async()=>{
     if (!form.name.trim()){alert('Bitte Namen eingeben.');return}
     setSaving(true); await onSave(form); setSaving(false)
@@ -343,7 +454,6 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
 
   const inp:React.CSSProperties={width:'100%',padding:'8px 10px',border:'1px solid #e2e2e2',borderRadius:8,fontSize:13,fontFamily:'inherit',outline:'none',background:'#fff'}
 
-  // Group medal types for editor
   const medalGroups = [
     { label: '🏅 Olympia / Paralympics', types: ['olympic_gold','olympic_silver','olympic_bronze'] as (keyof Medals)[], emojis: ['🥇','🥈','🥉'], sublabels: ['Gold','Silber','Bronze'] },
     { label: '🏆 Weltmeisterschaft',     types: ['wm_gold','wm_silver','wm_bronze'] as (keyof Medals)[],     emojis: ['🥇','🥈','🥉'], sublabels: ['Gold','Silber','Bronze'] },
@@ -355,7 +465,14 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
         Zurueck zur Uebersicht
       </button>
 
-      {/* Sport Tier */}
+      <div style={{marginBottom:16,padding:'14px 16px',background:statusInfo.bg,borderRadius:12,border:`1px solid ${rgba(statusInfo.color,0.3)}`}}>
+        <div style={{fontSize:10,fontWeight:700,color:statusInfo.color,textTransform:'uppercase' as const,letterSpacing:'0.12em',marginBottom:10}}>Status / Verhandlungsstand</div>
+        <select value={form.status} onChange={e=>updateField('status',e.target.value)}
+          style={{width:'100%',padding:'9px 12px',border:`1.5px solid ${statusInfo.color}`,borderRadius:8,fontSize:13,fontWeight:600,color:statusInfo.color,background:'#fff',fontFamily:'inherit',cursor:'pointer'}}>
+          {STATUS_OPTIONS.map(s=><option key={s.key} value={s.key}>{s.key}</option>)}
+        </select>
+      </div>
+
       <div style={{marginBottom:16,padding:'14px 16px',background:'#f8f8f8',borderRadius:12,border:'1px solid #ececec'}}>
         <div style={{fontSize:10,fontWeight:700,color:'#888',textTransform:'uppercase' as const,letterSpacing:'0.12em',marginBottom:12}}>Olympischer Sportarten Fit</div>
         <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8}}>
@@ -376,7 +493,6 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
         </div>
       </div>
 
-      {/* Medal Editor */}
       <div style={{marginBottom:16,padding:'14px 16px',background:'#fffbf0',borderRadius:12,border:'1px solid #fde8a0'}}>
         <div style={{fontSize:10,fontWeight:700,color:'#B8860B',textTransform:'uppercase' as const,letterSpacing:'0.12em',marginBottom:14}}>Titel & Medaillen</div>
         {medalGroups.map(group=>(
@@ -403,7 +519,6 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
         </div>
       </div>
 
-      {/* Para Lock */}
       <div style={{marginBottom:16,padding:'12px 16px',background:form.para_locked?'#e8f0fe':'#f8f8f8',borderRadius:12,border:`1px solid ${form.para_locked?'#185FA5':'#e2e2e2'}`,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
         <div>
           <div style={{fontSize:13,fontWeight:600,color:form.para_locked?'#185FA5':'#888'}}>Para / Paralympic Athlet</div>
@@ -415,7 +530,6 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
         </div>
       </div>
 
-      {/* Category banner */}
       <div style={{background:rgba(info.color,0.07),border:`1px solid ${rgba(info.color,0.2)}`,borderRadius:12,padding:'12px 16px',marginBottom:20,display:'flex',alignItems:'center',gap:10}}>
         <div>
           <div style={{fontSize:10,color:'#888',textTransform:'uppercase' as const,letterSpacing:'0.1em',marginBottom:2}}>Kategorie (auto):</div>
@@ -434,7 +548,6 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
         </div>
       </div>
 
-      {/* Photo */}
       <div style={{marginBottom:20}}>
         <div style={{width:'100%',height:260,borderRadius:12,overflow:'hidden',background:rgba(info.color,0.06),border:`1px solid ${rgba(info.color,0.15)}`,display:'flex',alignItems:'center',justifyContent:'center',position:'relative',marginBottom:10}}>
           {form.image
@@ -464,7 +577,6 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
         </div>
       </div>
 
-      {/* Name + Sport */}
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:16}}>
         <div>
           <label style={{display:'block',fontSize:11,color:'#888',marginBottom:4}}>Name *</label>
@@ -476,7 +588,6 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
         </div>
       </div>
 
-      {/* Cost + Social + Comments */}
       <div style={{marginBottom:20,padding:'14px 16px',background:'#f8f8f8',borderRadius:12,border:'1px solid #ececec'}}>
         <div style={{marginBottom:14}}>
           <label style={{display:'block',fontSize:11,color:'#888',marginBottom:4}}>Kosten / Jahr (EUR)</label>
@@ -489,6 +600,27 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
             <span style={{fontSize:11,fontWeight:500,color:'#B8860B'}}>{computeCostScore(form.cost).toFixed(1)}</span>
           </div>
         </div>
+
+        <div style={{marginBottom:14,padding:'10px 12px',background:'#fff',borderRadius:8,border:'1px solid #ececec'}}>
+          <label style={{display:'block',fontSize:11,color:'#888',marginBottom:6}}>Preis-Leistungs-Verhaeltnis des Angebots</label>
+          <div style={{display:'flex',gap:6}}>
+            <select value={form.offer_rating} onChange={e=>setForm(f=>({...f,offer_rating:Number(e.target.value)}))}
+              style={{flex:1,padding:'8px 10px',border:'1px solid #e2e2e2',borderRadius:8,fontSize:13,fontFamily:'inherit',background:'#fff'}}>
+              <option value={0}>Nicht bewertet</option>
+              <option value={1}>1 - Schlecht</option>
+              <option value={2}>2 - Eher schlecht</option>
+              <option value={3}>3 - Okay</option>
+              <option value={4}>4 - Gut</option>
+              <option value={5}>5 - Sehr gut</option>
+            </select>
+            {form.offer_rating>0 && (
+              <div style={{padding:'8px 14px',borderRadius:8,background:RATING_SCALE[form.offer_rating].bg,color:'#fff',fontSize:12,fontWeight:700,display:'flex',alignItems:'center'}}>
+                {form.offer_rating}/5
+              </div>
+            )}
+          </div>
+        </div>
+
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10,marginBottom:10}}>
           <div>
             <label style={{display:'block',fontSize:11,color:'#E1306C',marginBottom:4}}>Instagram Follower</label>
@@ -512,11 +644,38 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
         </div>
         <div>
           <label style={{display:'block',fontSize:11,color:'#888',marginBottom:4}}>Kommentare / Notizen</label>
-          <textarea value={form.comments} onChange={e=>updateField('comments',e.target.value)} placeholder="Interne Notizen..." rows={3} style={{...inp,resize:'vertical',lineHeight:'1.5'}}/>
+          <textarea value={form.comments} onChange={e=>updateField('comments',e.target.value)} placeholder="Interne Notizen..." rows={3} style={{...inp,resize:'vertical' as const,lineHeight:'1.5'}}/>
         </div>
       </div>
 
-      {/* PR */}
+      <div style={{marginBottom:24,padding:'14px 16px',background:'#f0fbf5',borderRadius:12,border:'1px solid #c8ecd8'}}>
+        <div style={{fontSize:10,fontWeight:700,color:'#0F7E45',textTransform:'uppercase' as const,letterSpacing:'0.12em',marginBottom:14}}>Angebot & Gegenwert</div>
+
+        <div style={{marginBottom:14}}>
+          <label style={{display:'block',fontSize:11,color:'#888',marginBottom:6}}>Angebot (PDF) hochladen</label>
+          {form.offer_pdf ? (
+            <div style={{display:'flex',alignItems:'center',gap:8,padding:'8px 12px',background:'#fff',borderRadius:8,border:'1px solid #ececec'}}>
+              <a href={form.offer_pdf} download={form.offer_pdf_name||'angebot.pdf'} style={{fontSize:12,color:'#0F7E45',fontWeight:600,flex:1,textDecoration:'none'}}>
+                📄 {form.offer_pdf_name||'Angebot.pdf'} ansehen / herunterladen
+              </a>
+              <button onClick={()=>setForm(f=>({...f,offer_pdf:null,offer_pdf_name:''}))} style={{background:'none',border:'none',color:'#ccc',fontSize:16,cursor:'pointer',padding:0}}>x</button>
+            </div>
+          ) : (
+            <label style={{display:'inline-flex',alignItems:'center',gap:7,border:'1px solid #e0e0e0',padding:'8px 14px',borderRadius:8,fontSize:12,cursor:'pointer',background:'#fff'}}>
+              {uploadingPdf?'Wird hochgeladen...':'PDF hochladen (max. 4 MB)'}
+              <input type="file" accept="application/pdf" onChange={handlePdfUpload} style={{display:'none'}} disabled={uploadingPdf}/>
+            </label>
+          )}
+        </div>
+
+        <div>
+          <label style={{display:'block',fontSize:11,color:'#888',marginBottom:4}}>Fazit: Wir zahlen X und bekommen Y</label>
+          <textarea value={form.offer_summary} onChange={e=>updateField('offer_summary',e.target.value)}
+            placeholder="z. B. Wir zahlen 60.000 EUR/Jahr und bekommen dafuer 12 Social Posts, 4 Event-Auftritte, exklusive Markenbotschafter-Rolle..."
+            rows={4} style={{...inp,resize:'vertical' as const,lineHeight:'1.5'}}/>
+        </div>
+      </div>
+
       <div style={{marginBottom:24,padding:'14px 16px',background:'#fff8f0',borderRadius:12,border:'1px solid #fde8cc'}}>
         <div style={{fontSize:10,fontWeight:700,color:'#c47800',textTransform:'uppercase' as const,letterSpacing:'0.12em',marginBottom:14}}>PR / Presse Stories</div>
         {(form.presse_storys||[]).map(story=>(
@@ -534,7 +693,6 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
         </div>
       </div>
 
-      {/* General */}
       <div style={{marginBottom:24,padding:'14px 16px',background:'#f0f4ff',borderRadius:12,border:'1px solid #dde5ff'}}>
         <div style={{fontSize:10,fontWeight:700,color:'#4466cc',textTransform:'uppercase' as const,letterSpacing:'0.12em',marginBottom:14}}>Allgemeine Bewertung</div>
         {GENERAL_CRIT.map(cr=>(
@@ -555,7 +713,6 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
         ))}
       </div>
 
-      {/* Category scoring */}
       <div style={{fontSize:10,fontWeight:700,color:'#888',textTransform:'uppercase' as const,letterSpacing:'0.12em',marginBottom:14,paddingBottom:6,borderBottom:'1px solid #ececec'}}>Kategorie-Kriterien</div>
       {CAT_ORDER.map(k=>{
         const c=CATS[k],isM=k===cat,avg=catAvg(form.scores,k,computed)
@@ -626,8 +783,24 @@ export default function Home() {
   const [editData,setEditData]=useState<Athlete|null>(null)
   const [loaded,setLoaded]=useState(false)
   const [isLive,setIsLive]=useState(false)
+  const [isAuthed,setIsAuthed]=useState(false)
+  const [authChecked,setAuthChecked]=useState(false)
+  const [userName,setUserName]=useState('')
+  const [searchTerm,setSearchTerm]=useState('')
 
   useEffect(()=>{
+    try {
+      const raw = localStorage.getItem('citroen_auth')
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        if (parsed?.name) { setIsAuthed(true); setUserName(parsed.name) }
+      }
+    } catch {}
+    setAuthChecked(true)
+  },[])
+
+  useEffect(()=>{
+    if (!isAuthed) return
     async function load() {
       try {
         const {data,error}=await supabase.from('athletes').select('*').order('created_at',{ascending:true})
@@ -635,7 +808,9 @@ export default function Home() {
           setAthletes(data.map(a=>({
             reach_insta:'',reach_tiktok:'',reach_youtube:'',
             image_position:15,comments:'',presse_storys:[],
-            para_locked:false,sport_tier:3,medals:blankMedals(),...a
+            para_locked:false,sport_tier:3,medals:blankMedals(),
+            status:'Kein Kontakt',offer_pdf:null,offer_pdf_name:'',offer_rating:0,offer_summary:'',
+            ...a
           })))
           setIsLive(true)
         } else setAthletes([])
@@ -643,7 +818,12 @@ export default function Home() {
       setLoaded(true)
     }
     load()
-  },[])
+  },[isAuthed])
+
+  const handleLogout = () => {
+    try { localStorage.removeItem('citroen_auth') } catch {}
+    setIsAuthed(false); setUserName('')
+  }
 
   const openAdd=()=>{setEditData(blankAthlete(Date.now()));setView('edit')}
   const openEdit=(a:Athlete)=>{setEditData({...a,scores:{...a.scores}});setView('edit')}
@@ -667,10 +847,17 @@ export default function Home() {
     goBack()
   }
 
-  if (!loaded) return <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',color:'#888',fontSize:14}}>Lade...</div>
+  if (!authChecked) return <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',color:'#888',fontSize:14}}>Lade...</div>
+  if (!isAuthed) return <LoginScreen onLogin={(name)=>{setIsAuthed(true);setUserName(name)}}/>
+  if (!loaded) return <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',color:'#888',fontSize:14}}>Lade Daten...</div>
+
+  const q = searchTerm.trim().toLowerCase()
+  const visibleAthletes = q
+    ? athletes.filter(a => a.name.toLowerCase().includes(q) || a.sport.toLowerCase().includes(q))
+    : athletes
 
   const grouped:Record<string,Athlete[]>={hero:[],medal:[],para:[],inspiring:[],rising:[]}
-  for (const a of athletes) {
+  for (const a of visibleAthletes) {
     const cat=autoAssign(a,getComputed(a))
     if (grouped[cat]) grouped[cat].push(a)
   }
@@ -691,10 +878,12 @@ export default function Home() {
           <span style={{fontSize:11,fontWeight:500,color:isLive?'#16a34a':RED}}>{isLive?'Live':'Offline'}</span>
         </div>
         {view==='grid'&&(
-          <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:8}}>
+          <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:10}}>
             <div style={{display:'flex',gap:5}}>
               {([1,2,3,0] as number[]).map(t=>{const ti=TIERS[t];return <div key={t} style={{fontSize:9,fontWeight:700,padding:'3px 7px',borderRadius:5,background:ti.bg,color:ti.color}}>{ti.short}</div>})}
             </div>
+            <span style={{fontSize:12,color:'#888'}}>{userName}</span>
+            <button onClick={handleLogout} style={{background:'none',border:'1px solid #ddd',color:'#888',padding:'6px 12px',borderRadius:8,fontSize:11,cursor:'pointer',fontFamily:'inherit'}}>Abmelden</button>
             <button onClick={openAdd} style={{display:'flex',alignItems:'center',gap:6,background:RED,color:'#fff',border:'none',padding:'9px 18px',borderRadius:8,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>
               + Athlet hinzufuegen
             </button>
@@ -704,15 +893,21 @@ export default function Home() {
 
       {view==='grid' ? (
         <>
-          <div style={{padding:'16px 24px 14px',borderBottom:'1px solid #ececec',background:'#fff',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+          <div style={{padding:'16px 24px 14px',borderBottom:'1px solid #ececec',background:'#fff',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'space-between',gap:16,flexWrap:'wrap' as const}}>
             <div>
               <div style={{fontSize:11,color:'#bbb',textTransform:'uppercase' as const,letterSpacing:'0.14em',marginBottom:2}}>Citroen - Road to LA28</div>
               <div style={{fontSize:24,fontWeight:700,color:'#1a1a1a',letterSpacing:'-0.02em'}}>Athlete Squad</div>
             </div>
-            <div style={{display:'flex',gap:8,alignItems:'center'}}>
-              <div style={{fontSize:10,color:'#888',marginRight:4}}>🏅 Olympia &nbsp; 🏆 WM</div>
+            <div style={{display:'flex',gap:12,alignItems:'center'}}>
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={e=>setSearchTerm(e.target.value)}
+                placeholder="Athlet oder Sportart suchen..."
+                style={{padding:'9px 14px',border:'1px solid #e2e2e2',borderRadius:20,fontSize:13,fontFamily:'inherit',outline:'none',width:240,background:'#f8f8f8'}}
+              />
               {([1,2,3,0] as number[]).map(t=>{
-                const ti=TIERS[t],count=athletes.filter(a=>(a.sport_tier??3)===t).length
+                const ti=TIERS[t],count=visibleAthletes.filter(a=>(a.sport_tier??3)===t).length
                 return <div key={t} style={{textAlign:'center' as const}}><div style={{fontSize:9,fontWeight:700,padding:'2px 7px',borderRadius:5,background:ti.bg,color:ti.color,marginBottom:2}}>{ti.short}</div><div style={{fontSize:10,color:'#888'}}>{count}</div></div>
               })}
             </div>
@@ -737,7 +932,7 @@ export default function Home() {
                     ))}
                     {list.length===0&&(
                       <div style={{textAlign:'center' as const,padding:'40px 16px',color:'#ccc',fontSize:12,border:'1px dashed #ddd',borderRadius:12,margin:'8px 0'}}>
-                        Noch kein Athlet
+                        Keine Treffer
                       </div>
                     )}
                   </div>
