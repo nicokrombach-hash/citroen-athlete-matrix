@@ -32,7 +32,6 @@ interface Athlete {
   offer_pdf: string | null
   offer_pdf_name: string
   offer_rating: number
-  offer_summary: string
   offer_duration: string
   offer_citroen_leistung: string
   offer_athlete_leistung: string
@@ -71,13 +70,14 @@ const RATING_SCALE: Record<number, { bg: string; label: string }> = {
   5: { bg: '#0F7E45', label: 'Sehr gut' },
 }
 
+// 6 Team-Accounts -- BITTE ANPASSEN! Nutzername/Passwort hier direkt im Code aendern.
 const ACCOUNTS: { user: string; pass: string; name: string }[] = [
-  { user: 'Nico',  pass: 'Citroen2026!',  name: 'Nico' },
-  { user: 'Paul',  pass: 'Squad2026!1',   name: 'Paul' },
-  { user: 'Timo',  pass: 'Squad2026!2',   name: 'Timo' },
-  { user: 'Lia',   pass: 'Squad2026!3',   name: 'Lia' },
-  { user: 'Anna',  pass: 'Squad2026!4',   name: 'Anna' },
-  { user: 'Mitja', pass: 'Squad2026!5',   name: 'Mitja' },
+  { user: 'Nico',  pass: 'Citroen2026!', name: 'Nico' },
+  { user: 'Paul',  pass: 'Squad2026!1',  name: 'Paul' },
+  { user: 'Timo',  pass: 'Squad2026!2',  name: 'Timo' },
+  { user: 'Lia',   pass: 'Squad2026!3',  name: 'Lia' },
+  { user: 'Anna',  pass: 'Squad2026!4',  name: 'Anna' },
+  { user: 'Mitja', pass: 'Squad2026!5',  name: 'Mitja' },
 ]
 
 const MEDAL_TYPES = [
@@ -202,7 +202,8 @@ function blankAthlete(id: number): Athlete {
   return {
     id,name:'',sport:'',image:null,image_position:15,cost:'',reach_insta:'',reach_tiktok:'',reach_youtube:'',
     comments:'',presse_storys:[],para_locked:false,sport_tier:3,medals:blankMedals(),
-    status:'Kein Kontakt',offer_pdf:null,offer_pdf_name:'',offer_rating:0,offer_summary:'',
+    status:'Kein Kontakt',offer_pdf:null,offer_pdf_name:'',offer_rating:0,
+    offer_duration:'',offer_citroen_leistung:'',offer_athlete_leistung:'',
     scores:blankScores()
   }
 }
@@ -406,7 +407,9 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
     offer_pdf:data.offer_pdf||null,
     offer_pdf_name:data.offer_pdf_name||'',
     offer_rating:data.offer_rating??0,
-    offer_summary:data.offer_summary||'',
+    offer_duration:data.offer_duration||'',
+    offer_citroen_leistung:data.offer_citroen_leistung||'',
+    offer_athlete_leistung:data.offer_athlete_leistung||'',
   })
   const [saving,setSaving]=useState(false)
   const [uploading,setUploading]=useState(false)
@@ -443,7 +446,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
   }
   const handlePdfUpload=async(e:React.ChangeEvent<HTMLInputElement>)=>{
     const file=e.target.files?.[0]; if (!file) return
-if (file.size > 8*1024*1024) { alert('Datei zu gross (max. 8 MB). Bitte komprimieren oder verkleinern.'); e.target.value=''; return }
+    if (file.size > 8*1024*1024) { alert('Datei zu gross (max. 8 MB). Bitte komprimieren oder verkleinern.'); e.target.value=''; return }
     setUploadingPdf(true)
     const b64=await fileToBase64(file)
     setForm(f=>({...f,offer_pdf:b64,offer_pdf_name:file.name}))
@@ -590,7 +593,10 @@ if (file.size > 8*1024*1024) { alert('Datei zu gross (max. 8 MB). Bitte komprimi
         </div>
       </div>
 
-      <div style={{marginBottom:20,padding:'14px 16px',background:'#f8f8f8',borderRadius:12,border:'1px solid #ececec'}}>
+      {/* ANGEBOT & GEGENWERT: Kosten, Preis-Leistung, PDF, Laufzeit, Leistungen */}
+      <div style={{marginBottom:20,padding:'14px 16px',background:'#f0fbf5',borderRadius:12,border:'1px solid #c8ecd8'}}>
+        <div style={{fontSize:10,fontWeight:700,color:'#0F7E45',textTransform:'uppercase' as const,letterSpacing:'0.12em',marginBottom:14}}>Angebot & Gegenwert</div>
+
         <div style={{marginBottom:14}}>
           <label style={{display:'block',fontSize:11,color:'#888',marginBottom:4}}>Kosten / Jahr (EUR)</label>
           <input type="number" min="0" step="1000" value={form.cost} onChange={e=>updateField('cost',e.target.value)} placeholder="z. B. 150000" style={inp}/>
@@ -623,6 +629,46 @@ if (file.size > 8*1024*1024) { alert('Datei zu gross (max. 8 MB). Bitte komprimi
           </div>
         </div>
 
+        <div style={{marginBottom:14}}>
+          <label style={{display:'block',fontSize:11,color:'#888',marginBottom:6}}>Angebot (PDF) hochladen</label>
+          {form.offer_pdf ? (
+            <div style={{display:'flex',alignItems:'center',gap:8,padding:'8px 12px',background:'#fff',borderRadius:8,border:'1px solid #ececec'}}>
+              <a href={form.offer_pdf} download={form.offer_pdf_name||'angebot.pdf'} style={{fontSize:12,color:'#0F7E45',fontWeight:600,flex:1,textDecoration:'none'}}>
+                📄 {form.offer_pdf_name||'Angebot.pdf'} ansehen / herunterladen
+              </a>
+              <button onClick={()=>setForm(f=>({...f,offer_pdf:null,offer_pdf_name:''}))} style={{background:'none',border:'none',color:'#ccc',fontSize:16,cursor:'pointer',padding:0}}>x</button>
+            </div>
+          ) : (
+            <label style={{display:'inline-flex',alignItems:'center',gap:7,border:'1px solid #e0e0e0',padding:'8px 14px',borderRadius:8,fontSize:12,cursor:'pointer',background:'#fff'}}>
+              {uploadingPdf?'Wird hochgeladen...':'PDF hochladen (max. 8 MB)'}
+              <input type="file" accept="application/pdf" onChange={handlePdfUpload} style={{display:'none'}} disabled={uploadingPdf}/>
+            </label>
+          )}
+        </div>
+
+        <div style={{marginBottom:14}}>
+          <label style={{display:'block',fontSize:11,color:'#888',marginBottom:4}}>Laufzeit</label>
+          <input type="text" value={form.offer_duration} onChange={e=>updateField('offer_duration',e.target.value)}
+            placeholder="z. B. 12 Monate, ab Q1 2027 bis LA28" style={inp}/>
+        </div>
+
+        <div style={{marginBottom:14}}>
+          <label style={{display:'block',fontSize:11,color:'#888',marginBottom:4}}>Leistungen Citroen</label>
+          <textarea value={form.offer_citroen_leistung} onChange={e=>updateField('offer_citroen_leistung',e.target.value)}
+            placeholder="z. B. 60.000 EUR/Jahr, Fahrzeugueberlassung, Markenbotschafter-Status, Event-Einladungen..."
+            rows={3} style={{...inp,resize:'vertical' as const,lineHeight:'1.5'}}/>
+        </div>
+
+        <div>
+          <label style={{display:'block',fontSize:11,color:'#888',marginBottom:4}}>Leistungen Athlet</label>
+          <textarea value={form.offer_athlete_leistung} onChange={e=>updateField('offer_athlete_leistung',e.target.value)}
+            placeholder="z. B. 6 Social Posts/Jahr, 24 Stories/Jahr, 2 Praesenztage/Jahr, 1 Shooting-Tag, Fahrzeugnutzung im Content..."
+            rows={4} style={{...inp,resize:'vertical' as const,lineHeight:'1.5'}}/>
+        </div>
+      </div>
+
+      {/* SOCIAL MEDIA & NOTIZEN */}
+      <div style={{marginBottom:20,padding:'14px 16px',background:'#f8f8f8',borderRadius:12,border:'1px solid #ececec'}}>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10,marginBottom:10}}>
           <div>
             <label style={{display:'block',fontSize:11,color:'#E1306C',marginBottom:4}}>Instagram Follower</label>
@@ -647,34 +693,6 @@ if (file.size > 8*1024*1024) { alert('Datei zu gross (max. 8 MB). Bitte komprimi
         <div>
           <label style={{display:'block',fontSize:11,color:'#888',marginBottom:4}}>Kommentare / Notizen</label>
           <textarea value={form.comments} onChange={e=>updateField('comments',e.target.value)} placeholder="Interne Notizen..." rows={3} style={{...inp,resize:'vertical' as const,lineHeight:'1.5'}}/>
-        </div>
-      </div>
-
-      <div style={{marginBottom:24,padding:'14px 16px',background:'#f0fbf5',borderRadius:12,border:'1px solid #c8ecd8'}}>
-        <div style={{fontSize:10,fontWeight:700,color:'#0F7E45',textTransform:'uppercase' as const,letterSpacing:'0.12em',marginBottom:14}}>Angebot & Gegenwert</div>
-
-        <div style={{marginBottom:14}}>
-          <label style={{display:'block',fontSize:11,color:'#888',marginBottom:6}}>Angebot (PDF) hochladen</label>
-          {form.offer_pdf ? (
-            <div style={{display:'flex',alignItems:'center',gap:8,padding:'8px 12px',background:'#fff',borderRadius:8,border:'1px solid #ececec'}}>
-              <a href={form.offer_pdf} download={form.offer_pdf_name||'angebot.pdf'} style={{fontSize:12,color:'#0F7E45',fontWeight:600,flex:1,textDecoration:'none'}}>
-                📄 {form.offer_pdf_name||'Angebot.pdf'} ansehen / herunterladen
-              </a>
-              <button onClick={()=>setForm(f=>({...f,offer_pdf:null,offer_pdf_name:''}))} style={{background:'none',border:'none',color:'#ccc',fontSize:16,cursor:'pointer',padding:0}}>x</button>
-            </div>
-          ) : (
-            <label style={{display:'inline-flex',alignItems:'center',gap:7,border:'1px solid #e0e0e0',padding:'8px 14px',borderRadius:8,fontSize:12,cursor:'pointer',background:'#fff'}}>
-             {uploadingPdf?'Wird hochgeladen...':'PDF hochladen (max. 8 MB)'}
-              <input type="file" accept="application/pdf" onChange={handlePdfUpload} style={{display:'none'}} disabled={uploadingPdf}/>
-            </label>
-          )}
-        </div>
-
-        <div>
-          <label style={{display:'block',fontSize:11,color:'#888',marginBottom:4}}>Fazit: Wir zahlen X und bekommen Y</label>
-          <textarea value={form.offer_summary} onChange={e=>updateField('offer_summary',e.target.value)}
-            placeholder="z. B. Wir zahlen 60.000 EUR/Jahr und bekommen dafuer 12 Social Posts, 4 Event-Auftritte, exklusive Markenbotschafter-Rolle..."
-            rows={4} style={{...inp,resize:'vertical' as const,lineHeight:'1.5'}}/>
         </div>
       </div>
 
@@ -811,7 +829,8 @@ export default function Home() {
             reach_insta:'',reach_tiktok:'',reach_youtube:'',
             image_position:15,comments:'',presse_storys:[],
             para_locked:false,sport_tier:3,medals:blankMedals(),
-            status:'Kein Kontakt',offer_pdf:null,offer_pdf_name:'',offer_rating:0,offer_summary:'',
+            status:'Kein Kontakt',offer_pdf:null,offer_pdf_name:'',offer_rating:0,
+            offer_duration:'',offer_citroen_leistung:'',offer_athlete_leistung:'',
             ...a
           })))
           setIsLive(true)
