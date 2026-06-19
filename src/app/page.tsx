@@ -440,7 +440,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
   }
   const handlePdfUpload=async(e:React.ChangeEvent<HTMLInputElement>)=>{
     const file=e.target.files?.[0]; if (!file) return
-    if (file.size > 4*1024*1024) { alert('Datei zu gross (max. 4 MB). Bitte komprimieren oder verkleinern.'); e.target.value=''; return }
+if (file.size > 8*1024*1024) { alert('Datei zu gross (max. 8 MB). Bitte komprimieren oder verkleinern.'); e.target.value=''; return }
     setUploadingPdf(true)
     const b64=await fileToBase64(file)
     setForm(f=>({...f,offer_pdf:b64,offer_pdf_name:file.name}))
@@ -661,7 +661,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack }: {
             </div>
           ) : (
             <label style={{display:'inline-flex',alignItems:'center',gap:7,border:'1px solid #e0e0e0',padding:'8px 14px',borderRadius:8,fontSize:12,cursor:'pointer',background:'#fff'}}>
-              {uploadingPdf?'Wird hochgeladen...':'PDF hochladen (max. 4 MB)'}
+             {uploadingPdf?'Wird hochgeladen...':'PDF hochladen (max. 8 MB)'}
               <input type="file" accept="application/pdf" onChange={handlePdfUpload} style={{display:'none'}} disabled={uploadingPdf}/>
             </label>
           )}
