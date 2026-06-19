@@ -68,14 +68,13 @@ const RATING_SCALE: Record<number, { bg: string; label: string }> = {
   5: { bg: '#0F7E45', label: 'Sehr gut' },
 }
 
-// 6 Team-Accounts -- BITTE ANPASSEN! Nutzername/Passwort hier direkt im Code aendern.
 const ACCOUNTS: { user: string; pass: string; name: string }[] = [
-  { user: 'Nico',        pass: 'Citroen2026!', name: 'Nico' },
-  { user: 'Paul', pass: 'Squad2026!1',    name: 'Paul' },
-  { user: 'Timo', pass: 'Squad2026!2',    name: 'Timo' },
-  { user: 'Lia', pass: 'Squad2026!'3,    name: 'Lia' },
-  { user: 'Anna', pass: 'Squad2026!4',    name: 'Anna' },
-  { user: 'Mitja', pass: 'Squad2026!5',    name: 'Mitja' },
+  { user: 'Nico',  pass: 'Citroen2026!',  name: 'Nico' },
+  { user: 'Paul',  pass: 'Squad2026!1',   name: 'Paul' },
+  { user: 'Timo',  pass: 'Squad2026!2',   name: 'Timo' },
+  { user: 'Lia',   pass: 'Squad2026!3',   name: 'Lia' },
+  { user: 'Anna',  pass: 'Squad2026!4',   name: 'Anna' },
+  { user: 'Mitja', pass: 'Squad2026!5',   name: 'Mitja' },
 ]
 
 const MEDAL_TYPES = [
