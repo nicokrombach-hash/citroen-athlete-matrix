@@ -78,6 +78,7 @@ const ACCOUNTS: { user: string; pass: string; name: string }[] = [
   { user: 'Lia',   pass: 'Squad2026!3',  name: 'Lia' },
   { user: 'Anna',  pass: 'Squad2026!4',  name: 'Anna' },
   { user: 'Mitja', pass: 'Squad2026!5',  name: 'Mitja' },
+  { user: 'Katharina', pass: 'Squad2026!6', name: 'Katharina' },
 ]
 
 const MEDAL_TYPES = [
@@ -872,9 +873,23 @@ export default function Home() {
   if (!isAuthed) return <LoginScreen onLogin={(name)=>{setIsAuthed(true);setUserName(name)}}/>
   if (!loaded) return <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',color:'#888',fontSize:14}}>Lade Daten...</div>
 
-  const q = searchTerm.trim().toLowerCase()
+const q = searchTerm.trim().toLowerCase()
   const visibleAthletes = q
-    ? athletes.filter(a => a.name.toLowerCase().includes(q) || a.sport.toLowerCase().includes(q))
+    ? athletes.filter(a => {
+        const cat = autoAssign(a, getComputed(a))
+        const catLabel = CATS[cat]?.label?.toLowerCase() || ''
+        const tierLabel = TIERS[a.sport_tier ?? 3]?.label?.toLowerCase() || ''
+        const statusLabel = (a.status || '').toLowerCase()
+        return (
+          a.name.toLowerCase().includes(q) ||
+          a.sport.toLowerCase().includes(q) ||
+          a.comments.toLowerCase().includes(q) ||
+          catLabel.includes(q) ||
+          tierLabel.includes(q) ||
+          statusLabel.includes(q) ||
+          (a.para_locked && 'para'.includes(q))
+        )
+      })
     : athletes
 
   const grouped:Record<string,Athlete[]>={hero:[],medal:[],para:[],inspiring:[],rising:[]}
