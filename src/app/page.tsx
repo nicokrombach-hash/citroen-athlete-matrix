@@ -54,13 +54,15 @@ const RATING_SCALE: Record<number, { bg: string; label: string }> = {
   5: { bg: '#0F7E45', label: 'Sehr gut' },
 }
 const ACCOUNTS: { user: string; pass: string; name: string }[] = [
-  { user: 'Nico',      pass: 'Citroen2026!', name: 'Nico' },
-  { user: 'Paul',      pass: 'Squad2026!1',  name: 'Paul' },
-  { user: 'Timo',      pass: 'Squad2026!2',  name: 'Timo' },
-  { user: 'Lia',       pass: 'Squad2026!3',  name: 'Lia' },
-  { user: 'Anna',      pass: 'Squad2026!4',  name: 'Anna' },
-  { user: 'Mitja',     pass: 'Squad2026!5',  name: 'Mitja' },
-  { user: 'Katharina', pass: 'Squad2026!6',  name: 'Katharina' },
+  { user: 'Nico',          pass: 'Citroen2026!', name: 'Nico' },
+  { user: 'Paul',          pass: 'Squad2026!1',  name: 'Paul' },
+  { user: 'Timo',          pass: 'Squad2026!2',  name: 'Timo' },
+  { user: 'Lia',           pass: 'Squad2026!3',  name: 'Lia' },
+  { user: 'Anna',          pass: 'Squad2026!4',  name: 'Anna' },
+  { user: 'Mitja',         pass: 'Squad2026!5',  name: 'Mitja' },
+  { user: 'Katharina',     pass: 'Squad2026!6',  name: 'Katharina' },
+  { user: 'robin.noppe',   pass: '5proSeite1',   name: 'Robin Noppe' },
+  { user: 'philipp.albert',pass: '5proSeite2',   name: 'Philipp Albert' },
 ]
 const MEDAL_TYPES = [
   { key: 'olympic_gold',   emoji: '🏅', label: 'OL', place: 'gold',   bg: 'linear-gradient(135deg,#FFD700,#FFA500)', shadow: 'rgba(255,180,0,0.5)',  text: '#7a4a00' },
