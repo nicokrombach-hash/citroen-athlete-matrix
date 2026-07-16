@@ -63,6 +63,7 @@ const ACCOUNTS: { user: string; pass: string; name: string }[] = [
   { user: 'Katharina',     pass: 'Squad2026!6',  name: 'Katharina' },
   { user: 'robin.noppe',   pass: '5proSeite1',   name: 'Robin Noppe' },
   { user: 'philipp.albert',pass: '5proSeite2',   name: 'Philipp Albert' },
+  { user: 'marvin.docke',  pass: 'Werderaufdie1',name: 'Marvin Docke' },
 ]
 const MEDAL_TYPES = [
   { key: 'olympic_gold',   emoji: '🏅', label: 'OL', place: 'gold',   bg: 'linear-gradient(135deg,#FFD700,#FFA500)', shadow: 'rgba(255,180,0,0.5)',  text: '#7a4a00' },
