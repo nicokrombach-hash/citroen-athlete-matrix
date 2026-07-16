@@ -22,6 +22,8 @@ interface Athlete {
   contact_company: string; contact_instagram: string
   next_step: string; next_step_date: string; crm_notes: CrmNote[]
   scores: Scores; user_scores: Record<string, Scores>
+  user_offer_ratings: Record<string, number>
+  user_offer_notes: Record<string, string>
 }
 
 const RED = '#DA291C'
@@ -136,19 +138,16 @@ function fmtReach(v: string) {
   if (n>=1000) return Math.round(n/1000)+'k'
   return String(n)
 }
-function fmtDate(iso: string): string {
-  if (!iso) return ''
-  try {
-    const d = new Date(iso)
-    return d.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit'})
-  } catch { return iso }
-}
 function fmtDateTime(iso: string): string {
   if (!iso) return ''
   try {
-    const d = new Date(iso)
+    const d=new Date(iso)
     return d.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit'})+' '+d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})
   } catch { return iso }
+}
+function fmtDate(iso: string): string {
+  if (!iso) return ''
+  try { return new Date(iso).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit'}) } catch { return iso }
 }
 function userColor(name: string): string {
   const colors=['#DA291C','#185FA5','#0F7E45','#B8860B','#6B21A8','#E8780A','#4A7C6F']
@@ -203,6 +202,12 @@ function cumulativeScores(athlete: Athlete): Scores {
   })
   return result
 }
+function cumulativeOfferRating(a: Athlete): { avg: number; count: number } {
+  const ur=a.user_offer_ratings||{}
+  const users=Object.keys(ur).filter(u=>ur[u]>0)
+  if (users.length===0) return { avg: a.offer_rating||0, count: 0 }
+  return { avg: parseFloat((users.reduce((s,u)=>s+ur[u],0)/users.length).toFixed(1)), count: users.length }
+}
 function autoAssign(a: Athlete, computed: Record<string,number>, scoresOverride?: Scores): string {
   if (a.para_locked) return 'para'
   const scores=scoresOverride||a.scores
@@ -224,7 +229,7 @@ function blankAthlete(id: number): Athlete {
     offer_duration:'',offer_citroen_leistung:'',offer_athlete_leistung:'',
     contact_name:'',contact_email:'',contact_phone:'',contact_company:'',contact_instagram:'',
     next_step:'',next_step_date:'',crm_notes:[],
-    scores:blankScores(),user_scores:{}
+    scores:blankScores(),user_scores:{},user_offer_ratings:{},user_offer_notes:{}
   }
 }
 function compressImage(file: File): Promise<string> {
@@ -315,17 +320,18 @@ function AthleteCard({ athlete, onClick }: { athlete: Athlete; onClick: () => vo
   const ini=initials(athlete.name)
   const pos=athlete.image_position??15
   const tr=totalReach(athlete)
-  const hasMeta=athlete.cost||tr>0||athlete.offer_rating>0
   const isOlympian=(cumScores['olympic_participation']??1)>=10
   const tier=athlete.sport_tier??3
   const tierInfo=TIERS[tier]??TIERS[3]
   const medals=athlete.medals||blankMedals()
   const hasMedals=MEDAL_TYPES.some(t=>(medals[t.key as keyof Medals]||0)>0)
   const statusInfo=STATUS_OPTIONS.find(s=>s.key===athlete.status)??STATUS_OPTIONS[0]
-  const ratingInfo=athlete.offer_rating>0?RATING_SCALE[athlete.offer_rating]:null
+  const { avg: offerAvg, count: offerCount } = cumulativeOfferRating(athlete)
+  const ratingInfo = offerAvg>0 ? RATING_SCALE[Math.round(offerAvg)] : null
+  const hasMeta=athlete.cost||tr>0||offerAvg>0
   const numRatings=Object.keys(athlete.user_scores||{}).filter(u=>{const us=(athlete.user_scores||{})[u];return us&&Object.keys(us).length>0}).length
-  const hasContact=!!(athlete.contact_email||athlete.contact_company||athlete.contact_name)
   const hasCrmNotes=(athlete.crm_notes||[]).length>0
+  const hasContact=!!(athlete.contact_email||athlete.contact_company)
 
   return (
     <div onClick={onClick}
@@ -351,20 +357,14 @@ function AthleteCard({ athlete, onClick }: { athlete: Athlete; onClick: () => vo
           {(athlete.presse_storys?.length>0)&&<div style={{fontSize:10,fontWeight:600,padding:'3px 8px',borderRadius:20,background:'rgba(255,255,255,0.93)',color:'#555'}}>PR {athlete.presse_storys.length}</div>}
         </div>
       </div>
-
-      {/* Tier strip */}
       <div style={{background:tierInfo.bg,padding:'4px 12px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
         <span style={{fontSize:9,fontWeight:700,color:tierInfo.color,letterSpacing:'0.08em',textTransform:'uppercase' as const}}>{tierInfo.label}</span>
         <span style={{fontSize:9,color:tierInfo.color,opacity:0.8}}>Fit: {cumScores['strategy_fit']??5}/10</span>
       </div>
-
-      {/* Status strip */}
       <div style={{background:statusInfo.bg,padding:'4px 12px',display:'flex',alignItems:'center',justifyContent:'space-between',borderBottom:`1px solid ${rgba(statusInfo.color,0.2)}`}}>
         <span style={{fontSize:10,fontWeight:700,color:statusInfo.color}}>● {statusInfo.key}</span>
         {hasContact&&<span style={{fontSize:9,color:statusInfo.color,opacity:0.7}}>📬</span>}
       </div>
-
-      {/* Next step strip */}
       {athlete.next_step&&(
         <div style={{padding:'4px 12px',background:'#fffbf0',borderBottom:'1px solid #fde8a0',display:'flex',alignItems:'center',gap:6}}>
           <span style={{fontSize:9,color:'#B8860B',fontWeight:700,flexShrink:0}}>→</span>
@@ -372,15 +372,10 @@ function AthleteCard({ athlete, onClick }: { athlete: Athlete; onClick: () => vo
           {athlete.next_step_date&&<span style={{fontSize:9,color:'#aaa',flexShrink:0}}>{fmtDate(athlete.next_step_date)}</span>}
         </div>
       )}
-
       <div style={{padding:'12px 14px'}}>
         <div style={{fontSize:15,fontWeight:600,lineHeight:1.2,marginBottom:2}}>{athlete.name||'--'}</div>
-        <div style={{fontSize:11,color:'#888',marginBottom:athlete.comments?6:hasMeta?8:10}}>{athlete.sport}</div>
-        {athlete.contact_company&&(
-          <div style={{fontSize:11,color:'#666',marginBottom:6,display:'flex',alignItems:'center',gap:4}}>
-            <span style={{fontSize:10}}>🏢</span><span>{athlete.contact_company}</span>
-          </div>
-        )}
+        <div style={{fontSize:11,color:'#888',marginBottom:athlete.contact_company?4:athlete.comments?6:hasMeta?8:10}}>{athlete.sport}</div>
+        {athlete.contact_company&&<div style={{fontSize:11,color:'#666',marginBottom:6,display:'flex',alignItems:'center',gap:4}}><span style={{fontSize:10}}>🏢</span><span>{athlete.contact_company}</span></div>}
         {athlete.comments&&(
           <div style={{fontSize:11,color:'#666',fontStyle:'italic',marginBottom:8,padding:'5px 8px',background:'#f8f8f8',borderRadius:6,borderLeft:'2px solid #ddd'}}>
             {athlete.comments.length>60?athlete.comments.slice(0,60)+'...':athlete.comments}
@@ -388,7 +383,11 @@ function AthleteCard({ athlete, onClick }: { athlete: Athlete; onClick: () => vo
         )}
         {hasMeta&&(
           <div style={{display:'flex',gap:8,marginBottom:10,padding:'6px 10px',background:'#f5f5f5',borderRadius:8,flexWrap:'wrap' as const,alignItems:'center'}}>
-            {ratingInfo&&<span style={{fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:12,background:ratingInfo.bg,color:'#fff'}}>P/L {athlete.offer_rating}/5</span>}
+            {ratingInfo&&(
+              <span style={{fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:12,background:ratingInfo.bg,color:'#fff'}}>
+                P/L {offerAvg}{offerCount>0?` (⌀${offerCount})`:''}/5
+              </span>
+            )}
             {ratingInfo&&athlete.cost&&<div style={{width:1,background:'#e2e2e2',height:12}}/>}
             {athlete.cost&&<span style={{fontSize:11,fontWeight:500,color:'#1a1a1a'}}>{fmtCost(athlete.cost)}</span>}
             {athlete.cost&&tr>0&&<div style={{width:1,background:'#e2e2e2',height:12}}/>}
@@ -445,6 +444,8 @@ function EditView({ data, isNew, onSave, onDelete, onBack, currentUser }: {
     next_step_date:data.next_step_date||'',
     crm_notes:data.crm_notes||[],
     user_scores:data.user_scores||{},
+    user_offer_ratings:data.user_offer_ratings||{},
+    user_offer_notes:data.user_offer_notes||{},
   })
 
   const initMyScores=(): Scores=>{
@@ -454,6 +455,9 @@ function EditView({ data, isNew, onSave, onDelete, onBack, currentUser }: {
   }
   const [myScores,setMyScores]=useState<Scores>(initMyScores)
   const [scoringTab,setScoringTab]=useState<string>(currentUser)
+  const [offerTab,setOfferTab]=useState<string>(currentUser)
+  const [myOfferRating,setMyOfferRating]=useState<number>(data.user_offer_ratings?.[currentUser]||data.offer_rating||0)
+  const [myOfferNote,setMyOfferNote]=useState<string>(data.user_offer_notes?.[currentUser]||'')
   const [saving,setSaving]=useState(false)
   const [uploading,setUploading]=useState(false)
   const [uploadingPdf,setUploadingPdf]=useState(false)
@@ -516,7 +520,12 @@ function EditView({ data, isNew, onSave, onDelete, onBack, currentUser }: {
     if (!form.name.trim()){alert('Bitte Namen eingeben.');return}
     setSaving(true)
     const updatedUserScores={...(form.user_scores||{}),[currentUser]:myScores}
-    await onSave({...form,user_scores:updatedUserScores})
+    await onSave({
+      ...form,
+      user_scores:updatedUserScores,
+      user_offer_ratings:{...(form.user_offer_ratings||{}),[currentUser]:myOfferRating},
+      user_offer_notes:{...(form.user_offer_notes||{}),[currentUser]:myOfferNote},
+    })
     setSaving(false)
   }
 
@@ -532,11 +541,9 @@ function EditView({ data, isNew, onSave, onDelete, onBack, currentUser }: {
         Zurueck zur Uebersicht
       </button>
 
-      {/* ======= CRM / OUTREACH ======= */}
+      {/* CRM */}
       <div style={{marginBottom:16,padding:'16px',background:'linear-gradient(135deg,#f0f7ff,#e8f0fe)',borderRadius:12,border:'1px solid #c5d3f5'}}>
         <div style={{fontSize:10,fontWeight:700,color:'#3356cc',textTransform:'uppercase' as const,letterSpacing:'0.12em',marginBottom:14}}>🎯 CRM / Outreach Pipeline</div>
-
-        {/* Status */}
         <div style={{marginBottom:14,padding:'12px',background:statusInfo.bg,borderRadius:10,border:`1px solid ${rgba(statusInfo.color,0.3)}`}}>
           <label style={{display:'block',fontSize:10,fontWeight:700,color:statusInfo.color,textTransform:'uppercase' as const,letterSpacing:'0.1em',marginBottom:8}}>Verhandlungsstatus</label>
           <select value={form.status} onChange={e=>updateField('status',e.target.value)}
@@ -544,21 +551,16 @@ function EditView({ data, isNew, onSave, onDelete, onBack, currentUser }: {
             {STATUS_OPTIONS.map(s=><option key={s.key} value={s.key}>{s.key}</option>)}
           </select>
         </div>
-
-        {/* Next Step */}
         <div style={{marginBottom:14,padding:'12px',background:'#fff',borderRadius:10,border:'1px solid #e2e2e2'}}>
           <label style={{display:'block',fontSize:10,fontWeight:700,color:'#B8860B',textTransform:'uppercase' as const,letterSpacing:'0.1em',marginBottom:8}}>→ Nächster Schritt</label>
           <input type="text" value={form.next_step} onChange={e=>updateField('next_step',e.target.value)}
             placeholder="Was ist zu tun? z. B. Angebot zusenden, Rückruf Agentur..." style={{...inp,marginBottom:8}}/>
           <div style={{display:'flex',alignItems:'center',gap:8}}>
             <label style={{fontSize:11,color:'#888',flexShrink:0}}>Bis wann:</label>
-            <input type="date" value={form.next_step_date} onChange={e=>updateField('next_step_date',e.target.value)}
-              style={{...inp,width:'auto',flex:1}}/>
+            <input type="date" value={form.next_step_date} onChange={e=>updateField('next_step_date',e.target.value)} style={{...inp,width:'auto',flex:1}}/>
             {form.next_step_date&&<button onClick={()=>updateField('next_step_date','')} style={{background:'none',border:'none',color:'#ccc',cursor:'pointer',fontSize:16,padding:0}}>x</button>}
           </div>
         </div>
-
-        {/* Contact Details */}
         <div style={{marginBottom:14,padding:'12px',background:'#fff',borderRadius:10,border:'1px solid #e2e2e2'}}>
           <label style={{display:'block',fontSize:10,fontWeight:700,color:'#3356cc',textTransform:'uppercase' as const,letterSpacing:'0.1em',marginBottom:10}}>📬 Kontaktperson / Management</label>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:8}}>
@@ -591,25 +593,19 @@ function EditView({ data, isNew, onSave, onDelete, onBack, currentUser }: {
             <label style={{display:'block',fontSize:10,color:'#888',marginBottom:3}}>Instagram Handle</label>
             <div style={{display:'flex',alignItems:'center',gap:4}}>
               <input type="text" value={form.contact_instagram} onChange={e=>updateField('contact_instagram',e.target.value)} placeholder="@handle" style={{...inp,flex:1}}/>
-              {form.contact_instagram&&<a href={`https://instagram.com/${form.contact_instagram.replace('@','')}`} target="_blank" rel="noopener noreferrer" style={{fontSize:16,textDecoration:'none',flexShrink:0}} title="Instagram öffnen">📸</a>}
+              {form.contact_instagram&&<a href={`https://instagram.com/${form.contact_instagram.replace('@','')}`} target="_blank" rel="noopener noreferrer" style={{fontSize:16,textDecoration:'none',flexShrink:0}}>📸</a>}
             </div>
           </div>
         </div>
-
-        {/* Activity Log */}
         <div style={{padding:'12px',background:'#fff',borderRadius:10,border:'1px solid #e2e2e2'}}>
           <label style={{display:'block',fontSize:10,fontWeight:700,color:'#3356cc',textTransform:'uppercase' as const,letterSpacing:'0.1em',marginBottom:10}}>
             💬 Aktivitäten & Notizen {(form.crm_notes||[]).length>0&&<span style={{fontWeight:400,color:'#888'}}>({(form.crm_notes||[]).length})</span>}
           </label>
-
-          {/* Timeline */}
           {(form.crm_notes||[]).length>0&&(
             <div style={{marginBottom:12,maxHeight:240,overflowY:'auto' as const}}>
               {[...(form.crm_notes||[])].reverse().map(note=>(
                 <div key={note.id} style={{display:'flex',gap:10,marginBottom:10,padding:'8px 10px',background:'#f8f9ff',borderRadius:8,border:'1px solid #e8ecf8',position:'relative'}}>
-                  <div style={{width:28,height:28,borderRadius:'50%',background:userColor(note.user),color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,flexShrink:0}}>
-                    {note.user[0]?.toUpperCase()}
-                  </div>
+                  <div style={{width:28,height:28,borderRadius:'50%',background:userColor(note.user),color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,flexShrink:0}}>{note.user[0]?.toUpperCase()}</div>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:3}}>
                       <span style={{fontSize:11,fontWeight:600,color:userColor(note.user)}}>{note.user}</span>
@@ -617,26 +613,21 @@ function EditView({ data, isNew, onSave, onDelete, onBack, currentUser }: {
                     </div>
                     <div style={{fontSize:12,color:'#333',lineHeight:1.5,wordBreak:'break-word' as const}}>{note.text}</div>
                   </div>
-                  {note.user===currentUser&&(
-                    <button onClick={()=>removeCrmNote(note.id)} style={{position:'absolute',top:6,right:8,background:'none',border:'none',color:'#ddd',fontSize:14,cursor:'pointer',padding:0}}>x</button>
-                  )}
+                  {note.user===currentUser&&<button onClick={()=>removeCrmNote(note.id)} style={{position:'absolute',top:6,right:8,background:'none',border:'none',color:'#ddd',fontSize:14,cursor:'pointer',padding:0}}>x</button>}
                 </div>
               ))}
             </div>
           )}
-
-          {/* New note input */}
           <textarea value={newCrmNote} onChange={e=>setNewCrmNote(e.target.value)}
-            placeholder="Neue Notiz hinzufügen... (z. B. Erstgespräch geführt, Angebot versendet, Rückruf vereinbart)"
-            rows={2} style={{...inp,resize:'vertical' as const,lineHeight:'1.5',marginBottom:8}}/>
+            placeholder="Neue Notiz hinzufügen..." rows={2} style={{...inp,resize:'vertical' as const,lineHeight:'1.5',marginBottom:8}}/>
           <button onClick={addCrmNote} disabled={!newCrmNote.trim()}
-            style={{background:newCrmNote.trim()?'#3356cc':'#e2e2e2',color:newCrmNote.trim()?'#fff':'#aaa',border:'none',padding:'7px 16px',borderRadius:6,fontSize:12,fontWeight:600,cursor:newCrmNote.trim()?'pointer':'default',fontFamily:'inherit',transition:'all 0.15s'}}>
-            + Notiz hinzufügen ({currentUser})
+            style={{background:newCrmNote.trim()?'#3356cc':'#e2e2e2',color:newCrmNote.trim()?'#fff':'#aaa',border:'none',padding:'7px 16px',borderRadius:6,fontSize:12,fontWeight:600,cursor:newCrmNote.trim()?'pointer':'default',fontFamily:'inherit'}}>
+            + Notiz ({currentUser})
           </button>
         </div>
       </div>
 
-      {/* Sport Tier */}
+      {/* Tier */}
       <div style={{marginBottom:16,padding:'14px 16px',background:'#f8f8f8',borderRadius:12,border:'1px solid #ececec'}}>
         <div style={{fontSize:10,fontWeight:700,color:'#888',textTransform:'uppercase' as const,letterSpacing:'0.12em',marginBottom:12}}>Olympischer Sportarten Fit</div>
         <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8}}>
@@ -756,6 +747,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack, currentUser }: {
       {/* Angebot & Gegenwert */}
       <div style={{marginBottom:20,padding:'14px 16px',background:'#f0fbf5',borderRadius:12,border:'1px solid #c8ecd8'}}>
         <div style={{fontSize:10,fontWeight:700,color:'#0F7E45',textTransform:'uppercase' as const,letterSpacing:'0.12em',marginBottom:14}}>Angebot & Gegenwert</div>
+
         <div style={{marginBottom:14}}>
           <label style={{display:'block',fontSize:11,color:'#888',marginBottom:4}}>Kosten / Jahr (EUR)</label>
           <input type="number" min="0" step="1000" value={form.cost} onChange={e=>updateField('cost',e.target.value)} placeholder="z. B. 150000" style={inp}/>
@@ -767,21 +759,91 @@ function EditView({ data, isNew, onSave, onDelete, onBack, currentUser }: {
             <span style={{fontSize:11,fontWeight:500,color:'#B8860B'}}>{computeCostScore(form.cost).toFixed(1)}</span>
           </div>
         </div>
-        <div style={{marginBottom:14,padding:'10px 12px',background:'#fff',borderRadius:8,border:'1px solid #ececec'}}>
-          <label style={{display:'block',fontSize:11,color:'#888',marginBottom:6}}>Preis-Leistungs-Verhaeltnis</label>
-          <div style={{display:'flex',gap:6}}>
-            <select value={form.offer_rating} onChange={e=>setForm(f=>({...f,offer_rating:Number(e.target.value)}))}
-              style={{flex:1,padding:'8px 10px',border:'1px solid #e2e2e2',borderRadius:8,fontSize:13,fontFamily:'inherit',background:'#fff'}}>
-              <option value={0}>Nicht bewertet</option>
-              <option value={1}>1 - Schlecht</option>
-              <option value={2}>2 - Eher schlecht</option>
-              <option value={3}>3 - Okay</option>
-              <option value={4}>4 - Gut</option>
-              <option value={5}>5 - Sehr gut</option>
-            </select>
-            {form.offer_rating>0&&<div style={{padding:'8px 14px',borderRadius:8,background:RATING_SCALE[form.offer_rating].bg,color:'#fff',fontSize:12,fontWeight:700,display:'flex',alignItems:'center'}}>{form.offer_rating}/5</div>}
+
+        {/* Angebot-Bewertung per User */}
+        <div style={{marginBottom:14,padding:'12px',background:'#fff',borderRadius:8,border:'1px solid #ececec'}}>
+          <label style={{display:'block',fontSize:10,fontWeight:700,color:'#0F7E45',textTransform:'uppercase' as const,letterSpacing:'0.1em',marginBottom:10}}>Preis-Leistungs-Bewertung (1–5)</label>
+          <div style={{display:'flex',gap:5,flexWrap:'wrap' as const,marginBottom:10}}>
+            <div onClick={()=>setOfferTab('_kumuliert')}
+              style={{padding:'4px 10px',borderRadius:20,fontSize:11,fontWeight:700,cursor:'pointer',transition:'all 0.15s',
+                background:offerTab==='_kumuliert'?'#1a1a1a':'#fff',
+                color:offerTab==='_kumuliert'?'#fff':'#555',
+                border:`1.5px solid ${offerTab==='_kumuliert'?'#1a1a1a':'#ddd'}`}}>
+              ⌀ Kumuliert
+            </div>
+            {ACCOUNTS.map(acc=>{
+              const hasRated=!!((form.user_offer_ratings||{})[acc.name])
+              const isMe=acc.name===currentUser
+              const isActive=offerTab===acc.name
+              return (
+                <div key={acc.name} onClick={()=>setOfferTab(acc.name)}
+                  style={{display:'flex',alignItems:'center',gap:3,padding:'4px 10px',borderRadius:20,fontSize:11,fontWeight:600,cursor:'pointer',transition:'all 0.15s',
+                    background:isActive?(isMe?RED:'#333'):'#fff',
+                    color:isActive?'#fff':(isMe?RED:'#666'),
+                    border:`1.5px solid ${isActive?(isMe?RED:'#333'):(isMe?rgba(RED,0.3):'#ddd')}`}}>
+                  {acc.name}{isMe&&<span style={{fontSize:9,opacity:0.7}}>(ich)</span>}{hasRated&&<span style={{fontSize:10}}>✓</span>}
+                </div>
+              )
+            })}
           </div>
+
+          {offerTab==='_kumuliert'&&(()=>{
+            const ur=form.user_offer_ratings||{}
+            const users=Object.keys(ur).filter(u=>ur[u]>0)
+            const avg=users.length>0?parseFloat((users.reduce((s,u)=>s+ur[u],0)/users.length).toFixed(1)):form.offer_rating||0
+            return (
+              <div>
+                <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
+                  {avg>0&&<div style={{padding:'6px 14px',borderRadius:8,background:RATING_SCALE[Math.round(avg)]?.bg||'#888',color:'#fff',fontSize:14,fontWeight:700}}>{avg}/5</div>}
+                  <span style={{fontSize:11,color:'#888'}}>{users.length>0?`Durchschnitt aus ${users.length} Bewertung${users.length!==1?'en':''}`:'Noch keine Bewertungen'}</span>
+                </div>
+                {users.map(u=>(
+                  <div key={u} style={{display:'flex',alignItems:'center',gap:8,marginBottom:6,padding:'6px 10px',background:'#f8f8f8',borderRadius:6}}>
+                    <div style={{width:24,height:24,borderRadius:'50%',background:userColor(u),color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:700,flexShrink:0}}>{u[0]?.toUpperCase()}</div>
+                    <span style={{fontSize:12,fontWeight:500}}>{u}</span>
+                    <div style={{padding:'2px 8px',borderRadius:6,background:RATING_SCALE[ur[u]]?.bg||'#888',color:'#fff',fontSize:11,fontWeight:700}}>{ur[u]}/5 · {RATING_SCALE[ur[u]]?.label}</div>
+                    {(form.user_offer_notes||{})[u]&&<span style={{fontSize:11,color:'#666',fontStyle:'italic',flex:1,overflow:'hidden',textOverflow:'ellipsis' as const,whiteSpace:'nowrap' as const}}>"{(form.user_offer_notes||{})[u]}"</span>}
+                  </div>
+                ))}
+              </div>
+            )
+          })()}
+
+          {offerTab===currentUser&&(
+            <div>
+              <div style={{display:'flex',gap:6,marginBottom:8}}>
+                <select value={myOfferRating} onChange={e=>setMyOfferRating(Number(e.target.value))}
+                  style={{flex:1,padding:'8px 10px',border:'1px solid #e2e2e2',borderRadius:8,fontSize:13,fontFamily:'inherit',background:'#fff'}}>
+                  <option value={0}>Nicht bewertet</option>
+                  <option value={1}>1 - Schlecht</option>
+                  <option value={2}>2 - Eher schlecht</option>
+                  <option value={3}>3 - Okay</option>
+                  <option value={4}>4 - Gut</option>
+                  <option value={5}>5 - Sehr gut</option>
+                </select>
+                {myOfferRating>0&&<div style={{padding:'8px 14px',borderRadius:8,background:RATING_SCALE[myOfferRating].bg,color:'#fff',fontSize:12,fontWeight:700,display:'flex',alignItems:'center'}}>{myOfferRating}/5</div>}
+              </div>
+              <textarea value={myOfferNote} onChange={e=>setMyOfferNote(e.target.value)}
+                placeholder={`Deine Einschätzung zum Angebot (${currentUser})...`}
+                rows={2} style={{...inp,resize:'vertical' as const,lineHeight:'1.5'}}/>
+            </div>
+          )}
+
+          {offerTab!=='_kumuliert'&&offerTab!==currentUser&&(()=>{
+            const rating=(form.user_offer_ratings||{})[offerTab]||0
+            const note=(form.user_offer_notes||{})[offerTab]||''
+            return rating||note ? (
+              <div>
+                {rating>0&&<div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
+                  <div style={{padding:'6px 14px',borderRadius:8,background:RATING_SCALE[rating]?.bg||'#888',color:'#fff',fontSize:13,fontWeight:700}}>{rating}/5 · {RATING_SCALE[rating]?.label}</div>
+                  <span style={{fontSize:11,color:'#888'}}>von {offerTab} – schreibgeschützt</span>
+                </div>}
+                {note&&<div style={{padding:'8px 12px',background:'#f8f8f8',borderRadius:6,fontSize:12,color:'#444',fontStyle:'italic',lineHeight:1.5}}>"{note}"</div>}
+              </div>
+            ) : <div style={{fontSize:11,color:'#aaa'}}>{offerTab} hat das Angebot noch nicht bewertet.</div>
+          })()}
         </div>
+
         <div style={{marginBottom:14}}>
           <label style={{display:'block',fontSize:11,color:'#888',marginBottom:6}}>Angebot (PDF) hochladen</label>
           {form.offer_pdf?(
@@ -814,7 +876,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack, currentUser }: {
         </div>
       </div>
 
-      {/* Social + Comments */}
+      {/* Social */}
       <div style={{marginBottom:20,padding:'14px 16px',background:'#f8f8f8',borderRadius:12,border:'1px solid #ececec'}}>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10,marginBottom:10}}>
           <div>
@@ -890,13 +952,13 @@ function EditView({ data, isNew, onSave, onDelete, onBack, currentUser }: {
           })}
         </div>
         <div style={{fontSize:11,color:'#888'}}>
-          {scoringTab==='_kumuliert'&&`Durchschnitt aller Bewertungen – schreibgeschuetzt${numRatings===0?' (noch keine individuellen Bewertungen)':`  (${numRatings} Bewertung${numRatings!==1?'en':''})`}`}
+          {scoringTab==='_kumuliert'&&`Durchschnitt aller Bewertungen – schreibgeschuetzt${numRatings===0?' (noch keine)':` (${numRatings})`}`}
           {scoringTab===currentUser&&!iHaveRated&&'Du hast noch keine eigene Bewertung. Passe die Werte an und speichere.'}
-          {scoringTab===currentUser&&iHaveRated&&'Deine gespeicherte Bewertung – du kannst sie anpassen und neu speichern.'}
+          {scoringTab===currentUser&&iHaveRated&&'Deine gespeicherte Bewertung – du kannst sie anpassen.'}
           {scoringTab!=='_kumuliert'&&scoringTab!==currentUser&&(
             (form.user_scores?.[scoringTab]&&Object.keys(form.user_scores[scoringTab]).length>0)
               ?`Bewertung von ${scoringTab} – schreibgeschuetzt`
-              :`${scoringTab} hat noch keine Bewertung abgegeben`
+              :`${scoringTab} hat noch nicht bewertet`
           )}
         </div>
       </div>
@@ -1027,7 +1089,7 @@ export default function Home() {
             offer_duration:'',offer_citroen_leistung:'',offer_athlete_leistung:'',
             contact_name:'',contact_email:'',contact_phone:'',contact_company:'',contact_instagram:'',
             next_step:'',next_step_date:'',crm_notes:[],
-            user_scores:{},
+            user_scores:{},user_offer_ratings:{},user_offer_notes:{},
             ...a
           })))
           setIsLive(true)
@@ -1043,7 +1105,7 @@ export default function Home() {
     setIsAuthed(false);setUserName('')
   }
   const openAdd=()=>{setEditData(blankAthlete(Date.now()));setView('edit')}
-  const openEdit=(a:Athlete)=>{setEditData({...a,scores:{...a.scores},user_scores:{...(a.user_scores||{})},crm_notes:[...(a.crm_notes||[])]});setView('edit')}
+  const openEdit=(a:Athlete)=>{setEditData({...a,scores:{...a.scores},user_scores:{...(a.user_scores||{})},crm_notes:[...(a.crm_notes||[])],user_offer_ratings:{...(a.user_offer_ratings||{})},user_offer_notes:{...(a.user_offer_notes||{})}});setView('edit')}
   const goBack=()=>{setView('grid');setEditData(null)}
 
   const handleSave=async(data:Athlete)=>{
@@ -1077,10 +1139,9 @@ export default function Home() {
         const statusLabel=(a.status||'').toLowerCase()
         const contactStr=(a.contact_name+' '+a.contact_company+' '+a.contact_email).toLowerCase()
         return (
-          a.name.toLowerCase().includes(q)||
-          a.sport.toLowerCase().includes(q)||
-          a.comments.toLowerCase().includes(q)||
-          catLabel.includes(q)||tierLabel.includes(q)||statusLabel.includes(q)||
+          a.name.toLowerCase().includes(q)||a.sport.toLowerCase().includes(q)||
+          a.comments.toLowerCase().includes(q)||catLabel.includes(q)||
+          tierLabel.includes(q)||statusLabel.includes(q)||
           contactStr.includes(q)||(a.para_locked&&'para'.includes(q))
         )
       })
@@ -1160,9 +1221,7 @@ export default function Home() {
                         <AthleteCard athlete={a} onClick={()=>openEdit(a)}/>
                       </div>
                     ))}
-                    {list.length===0&&(
-                      <div style={{textAlign:'center' as const,padding:'40px 16px',color:'#ccc',fontSize:12,border:'1px dashed #ddd',borderRadius:12,margin:'8px 0'}}>Keine Treffer</div>
-                    )}
+                    {list.length===0&&<div style={{textAlign:'center' as const,padding:'40px 16px',color:'#ccc',fontSize:12,border:'1px dashed #ddd',borderRadius:12,margin:'8px 0'}}>Keine Treffer</div>}
                   </div>
                 </div>
               )
