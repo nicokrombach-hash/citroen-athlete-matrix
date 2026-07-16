@@ -328,7 +328,8 @@ function AthleteCard({ athlete, onClick }: { athlete: Athlete; onClick: () => vo
   const statusInfo=STATUS_OPTIONS.find(s=>s.key===athlete.status)??STATUS_OPTIONS[0]
   const { avg: offerAvg, count: offerCount } = cumulativeOfferRating(athlete)
   const ratingInfo = offerAvg>0 ? RATING_SCALE[Math.round(offerAvg)] : null
-  const hasMeta=athlete.cost||tr>0||offerAvg>0
+  const hasRealOffer = athlete.status==='Angebot liegt vor' || athlete.status==='Aktiver Squad Member'
+  const hasMeta=(athlete.cost&&hasRealOffer)||tr>0||offerAvg>0
   const numRatings=Object.keys(athlete.user_scores||{}).filter(u=>{const us=(athlete.user_scores||{})[u];return us&&Object.keys(us).length>0}).length
   const hasCrmNotes=(athlete.crm_notes||[]).length>0
   const hasContact=!!(athlete.contact_email||athlete.contact_company)
@@ -389,8 +390,8 @@ function AthleteCard({ athlete, onClick }: { athlete: Athlete; onClick: () => vo
               </span>
             )}
             {ratingInfo&&athlete.cost&&<div style={{width:1,background:'#e2e2e2',height:12}}/>}
-            {athlete.cost&&<span style={{fontSize:11,fontWeight:500,color:'#1a1a1a'}}>{fmtCost(athlete.cost)}</span>}
-            {athlete.cost&&tr>0&&<div style={{width:1,background:'#e2e2e2',height:12}}/>}
+            {athlete.cost&&hasRealOffer&&<span style={{fontSize:11,fontWeight:500,color:'#1a1a1a'}}>{fmtCost(athlete.cost)}</span>}
+            {athlete.cost&&hasRealOffer&&tr>0&&<div style={{width:1,background:'#e2e2e2',height:12}}/>}
             {Number(athlete.reach_insta)>0&&<span style={{fontSize:10}}><span style={{color:'#E1306C',fontWeight:600}}>IG</span> <span style={{fontWeight:500}}>{fmtReach(athlete.reach_insta)}</span></span>}
             {Number(athlete.reach_tiktok)>0&&<span style={{fontSize:10}}><span style={{color:'#555',fontWeight:600}}>TT</span> <span style={{fontWeight:500}}>{fmtReach(athlete.reach_tiktok)}</span></span>}
             {Number(athlete.reach_youtube)>0&&<span style={{fontSize:10}}><span style={{color:'#FF0000',fontWeight:600}}>YT</span> <span style={{fontWeight:500}}>{fmtReach(athlete.reach_youtube)}</span></span>}
