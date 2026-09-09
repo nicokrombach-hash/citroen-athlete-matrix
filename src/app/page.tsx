@@ -118,7 +118,6 @@ for (const k of Object.keys(CATS)) {
   BY_COMP[k] = COMP.filter(c => c.cat === k)
 }
 const TIER_SCORES: Record<number,number> = {1:10, 2:7, 3:4, 0:2}
-
 const blankMedals = (): Medals => ({ olympic_gold:0, olympic_silver:0, olympic_bronze:0, wm_gold:0, wm_silver:0, wm_bronze:0 })
 
 function rgba(hex: string, a: number) {
@@ -326,9 +325,9 @@ function AthleteCard({ athlete, onClick }: { athlete: Athlete; onClick: () => vo
   const medals=athlete.medals||blankMedals()
   const hasMedals=MEDAL_TYPES.some(t=>(medals[t.key as keyof Medals]||0)>0)
   const statusInfo=STATUS_OPTIONS.find(s=>s.key===athlete.status)??STATUS_OPTIONS[0]
-  const { avg: offerAvg, count: offerCount } = cumulativeOfferRating(athlete)
-  const ratingInfo = offerAvg>0 ? RATING_SCALE[Math.round(offerAvg)] : null
-  const hasRealOffer = athlete.status==='Angebot liegt vor' || athlete.status==='Aktiver Squad Member'
+  const { avg: offerAvg, count: offerCount }=cumulativeOfferRating(athlete)
+  const ratingInfo=offerAvg>0?RATING_SCALE[Math.round(offerAvg)]:null
+  const hasRealOffer=athlete.status==='Angebot liegt vor'||athlete.status==='Aktiver Squad Member'
   const hasMeta=(athlete.cost&&hasRealOffer)||tr>0||offerAvg>0
   const numRatings=Object.keys(athlete.user_scores||{}).filter(u=>{const us=(athlete.user_scores||{})[u];return us&&Object.keys(us).length>0}).length
   const hasCrmNotes=(athlete.crm_notes||[]).length>0
@@ -384,12 +383,8 @@ function AthleteCard({ athlete, onClick }: { athlete: Athlete; onClick: () => vo
         )}
         {hasMeta&&(
           <div style={{display:'flex',gap:8,marginBottom:10,padding:'6px 10px',background:'#f5f5f5',borderRadius:8,flexWrap:'wrap' as const,alignItems:'center'}}>
-            {ratingInfo&&(
-              <span style={{fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:12,background:ratingInfo.bg,color:'#fff'}}>
-                P/L {offerAvg}{offerCount>0?` (⌀${offerCount})`:''}/5
-              </span>
-            )}
-            {ratingInfo&&athlete.cost&&<div style={{width:1,background:'#e2e2e2',height:12}}/>}
+            {ratingInfo&&<span style={{fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:12,background:ratingInfo.bg,color:'#fff'}}>P/L {offerAvg}{offerCount>0?` (⌀${offerCount})`:''}/5</span>}
+            {ratingInfo&&athlete.cost&&hasRealOffer&&<div style={{width:1,background:'#e2e2e2',height:12}}/>}
             {athlete.cost&&hasRealOffer&&<span style={{fontSize:11,fontWeight:500,color:'#1a1a1a'}}>{fmtCost(athlete.cost)}</span>}
             {athlete.cost&&hasRealOffer&&tr>0&&<div style={{width:1,background:'#e2e2e2',height:12}}/>}
             {Number(athlete.reach_insta)>0&&<span style={{fontSize:10}}><span style={{color:'#E1306C',fontWeight:600}}>IG</span> <span style={{fontWeight:500}}>{fmtReach(athlete.reach_insta)}</span></span>}
@@ -448,7 +443,6 @@ function EditView({ data, isNew, onSave, onDelete, onBack, currentUser }: {
     user_offer_ratings:data.user_offer_ratings||{},
     user_offer_notes:data.user_offer_notes||{},
   })
-
   const initMyScores=(): Scores=>{
     const saved=data.user_scores?.[currentUser]
     if (saved&&Object.keys(saved).length>0) return {...blankScores(),...saved}
@@ -472,7 +466,6 @@ function EditView({ data, isNew, onSave, onDelete, onBack, currentUser }: {
   const pos=form.image_position??15
   const tierInfo=TIERS[form.sport_tier]??TIERS[3]
   const statusInfo=STATUS_OPTIONS.find(s=>s.key===form.status)??STATUS_OPTIONS[0]
-
   const activeScores: Scores=
     scoringTab==='_kumuliert'?liveCumScores:
     scoringTab===currentUser?myScores:
@@ -554,8 +547,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack, currentUser }: {
         </div>
         <div style={{marginBottom:14,padding:'12px',background:'#fff',borderRadius:10,border:'1px solid #e2e2e2'}}>
           <label style={{display:'block',fontSize:10,fontWeight:700,color:'#B8860B',textTransform:'uppercase' as const,letterSpacing:'0.1em',marginBottom:8}}>→ Nächster Schritt</label>
-          <input type="text" value={form.next_step} onChange={e=>updateField('next_step',e.target.value)}
-            placeholder="Was ist zu tun? z. B. Angebot zusenden, Rückruf Agentur..." style={{...inp,marginBottom:8}}/>
+          <input type="text" value={form.next_step} onChange={e=>updateField('next_step',e.target.value)} placeholder="Was ist zu tun?" style={{...inp,marginBottom:8}}/>
           <div style={{display:'flex',alignItems:'center',gap:8}}>
             <label style={{fontSize:11,color:'#888',flexShrink:0}}>Bis wann:</label>
             <input type="date" value={form.next_step_date} onChange={e=>updateField('next_step_date',e.target.value)} style={{...inp,width:'auto',flex:1}}/>
@@ -566,12 +558,12 @@ function EditView({ data, isNew, onSave, onDelete, onBack, currentUser }: {
           <label style={{display:'block',fontSize:10,fontWeight:700,color:'#3356cc',textTransform:'uppercase' as const,letterSpacing:'0.1em',marginBottom:10}}>📬 Kontaktperson / Management</label>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:8}}>
             <div>
-              <label style={{display:'block',fontSize:10,color:'#888',marginBottom:3}}>Ansprechpartner Name</label>
-              <input type="text" value={form.contact_name} onChange={e=>updateField('contact_name',e.target.value)} placeholder="z. B. Max Mustermann" style={inp}/>
+              <label style={{display:'block',fontSize:10,color:'#888',marginBottom:3}}>Ansprechpartner</label>
+              <input type="text" value={form.contact_name} onChange={e=>updateField('contact_name',e.target.value)} placeholder="Name" style={inp}/>
             </div>
             <div>
               <label style={{display:'block',fontSize:10,color:'#888',marginBottom:3}}>Agentur / Management</label>
-              <input type="text" value={form.contact_company} onChange={e=>updateField('contact_company',e.target.value)} placeholder="z. B. Vitesse Management" style={inp}/>
+              <input type="text" value={form.contact_company} onChange={e=>updateField('contact_company',e.target.value)} placeholder="Agentur" style={inp}/>
             </div>
           </div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:8}}>
@@ -579,14 +571,14 @@ function EditView({ data, isNew, onSave, onDelete, onBack, currentUser }: {
               <label style={{display:'block',fontSize:10,color:'#888',marginBottom:3}}>E-Mail</label>
               <div style={{display:'flex',alignItems:'center',gap:4}}>
                 <input type="email" value={form.contact_email} onChange={e=>updateField('contact_email',e.target.value)} placeholder="email@agentur.de" style={{...inp,flex:1}}/>
-                {form.contact_email&&<a href={`mailto:${form.contact_email}`} style={{fontSize:16,textDecoration:'none',flexShrink:0}} title="E-Mail öffnen">✉️</a>}
+                {form.contact_email&&<a href={`mailto:${form.contact_email}`} style={{fontSize:16,textDecoration:'none',flexShrink:0}}>✉️</a>}
               </div>
             </div>
             <div>
               <label style={{display:'block',fontSize:10,color:'#888',marginBottom:3}}>Telefon</label>
               <div style={{display:'flex',alignItems:'center',gap:4}}>
                 <input type="text" value={form.contact_phone} onChange={e=>updateField('contact_phone',e.target.value)} placeholder="+49 ..." style={{...inp,flex:1}}/>
-                {form.contact_phone&&<a href={`tel:${form.contact_phone}`} style={{fontSize:16,textDecoration:'none',flexShrink:0}} title="Anrufen">📞</a>}
+                {form.contact_phone&&<a href={`tel:${form.contact_phone}`} style={{fontSize:16,textDecoration:'none',flexShrink:0}}>📞</a>}
               </div>
             </div>
           </div>
@@ -619,8 +611,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack, currentUser }: {
               ))}
             </div>
           )}
-          <textarea value={newCrmNote} onChange={e=>setNewCrmNote(e.target.value)}
-            placeholder="Neue Notiz hinzufügen..." rows={2} style={{...inp,resize:'vertical' as const,lineHeight:'1.5',marginBottom:8}}/>
+          <textarea value={newCrmNote} onChange={e=>setNewCrmNote(e.target.value)} placeholder="Neue Notiz..." rows={2} style={{...inp,resize:'vertical' as const,lineHeight:'1.5',marginBottom:8}}/>
           <button onClick={addCrmNote} disabled={!newCrmNote.trim()}
             style={{background:newCrmNote.trim()?'#3356cc':'#e2e2e2',color:newCrmNote.trim()?'#fff':'#aaa',border:'none',padding:'7px 16px',borderRadius:6,fontSize:12,fontWeight:600,cursor:newCrmNote.trim()?'pointer':'default',fontFamily:'inherit'}}>
             + Notiz ({currentUser})
@@ -748,7 +739,6 @@ function EditView({ data, isNew, onSave, onDelete, onBack, currentUser }: {
       {/* Angebot & Gegenwert */}
       <div style={{marginBottom:20,padding:'14px 16px',background:'#f0fbf5',borderRadius:12,border:'1px solid #c8ecd8'}}>
         <div style={{fontSize:10,fontWeight:700,color:'#0F7E45',textTransform:'uppercase' as const,letterSpacing:'0.12em',marginBottom:14}}>Angebot & Gegenwert</div>
-
         <div style={{marginBottom:14}}>
           <label style={{display:'block',fontSize:11,color:'#888',marginBottom:4}}>Kosten / Jahr (EUR)</label>
           <input type="number" min="0" step="1000" value={form.cost} onChange={e=>updateField('cost',e.target.value)} placeholder="z. B. 150000" style={inp}/>
@@ -761,14 +751,13 @@ function EditView({ data, isNew, onSave, onDelete, onBack, currentUser }: {
           </div>
         </div>
 
-        {/* Angebot-Bewertung per User */}
+        {/* Offer Rating per User */}
         <div style={{marginBottom:14,padding:'12px',background:'#fff',borderRadius:8,border:'1px solid #ececec'}}>
           <label style={{display:'block',fontSize:10,fontWeight:700,color:'#0F7E45',textTransform:'uppercase' as const,letterSpacing:'0.1em',marginBottom:10}}>Preis-Leistungs-Bewertung (1–5)</label>
           <div style={{display:'flex',gap:5,flexWrap:'wrap' as const,marginBottom:10}}>
             <div onClick={()=>setOfferTab('_kumuliert')}
               style={{padding:'4px 10px',borderRadius:20,fontSize:11,fontWeight:700,cursor:'pointer',transition:'all 0.15s',
-                background:offerTab==='_kumuliert'?'#1a1a1a':'#fff',
-                color:offerTab==='_kumuliert'?'#fff':'#555',
+                background:offerTab==='_kumuliert'?'#1a1a1a':'#fff',color:offerTab==='_kumuliert'?'#fff':'#555',
                 border:`1.5px solid ${offerTab==='_kumuliert'?'#1a1a1a':'#ddd'}`}}>
               ⌀ Kumuliert
             </div>
@@ -779,15 +768,13 @@ function EditView({ data, isNew, onSave, onDelete, onBack, currentUser }: {
               return (
                 <div key={acc.name} onClick={()=>setOfferTab(acc.name)}
                   style={{display:'flex',alignItems:'center',gap:3,padding:'4px 10px',borderRadius:20,fontSize:11,fontWeight:600,cursor:'pointer',transition:'all 0.15s',
-                    background:isActive?(isMe?RED:'#333'):'#fff',
-                    color:isActive?'#fff':(isMe?RED:'#666'),
+                    background:isActive?(isMe?RED:'#333'):'#fff',color:isActive?'#fff':(isMe?RED:'#666'),
                     border:`1.5px solid ${isActive?(isMe?RED:'#333'):(isMe?rgba(RED,0.3):'#ddd')}`}}>
                   {acc.name}{isMe&&<span style={{fontSize:9,opacity:0.7}}>(ich)</span>}{hasRated&&<span style={{fontSize:10}}>✓</span>}
                 </div>
               )
             })}
           </div>
-
           {offerTab==='_kumuliert'&&(()=>{
             const ur=form.user_offer_ratings||{}
             const users=Object.keys(ur).filter(u=>ur[u]>0)
@@ -796,7 +783,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack, currentUser }: {
               <div>
                 <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
                   {avg>0&&<div style={{padding:'6px 14px',borderRadius:8,background:RATING_SCALE[Math.round(avg)]?.bg||'#888',color:'#fff',fontSize:14,fontWeight:700}}>{avg}/5</div>}
-                  <span style={{fontSize:11,color:'#888'}}>{users.length>0?`Durchschnitt aus ${users.length} Bewertung${users.length!==1?'en':''}`:'Noch keine Bewertungen'}</span>
+                  <span style={{fontSize:11,color:'#888'}}>{users.length>0?`Durchschnitt aus ${users.length} Bewertung${users.length!==1?'en':''}`:'Noch keine'}</span>
                 </div>
                 {users.map(u=>(
                   <div key={u} style={{display:'flex',alignItems:'center',gap:8,marginBottom:6,padding:'6px 10px',background:'#f8f8f8',borderRadius:6}}>
@@ -809,7 +796,6 @@ function EditView({ data, isNew, onSave, onDelete, onBack, currentUser }: {
               </div>
             )
           })()}
-
           {offerTab===currentUser&&(
             <div>
               <div style={{display:'flex',gap:6,marginBottom:8}}>
@@ -825,15 +811,14 @@ function EditView({ data, isNew, onSave, onDelete, onBack, currentUser }: {
                 {myOfferRating>0&&<div style={{padding:'8px 14px',borderRadius:8,background:RATING_SCALE[myOfferRating].bg,color:'#fff',fontSize:12,fontWeight:700,display:'flex',alignItems:'center'}}>{myOfferRating}/5</div>}
               </div>
               <textarea value={myOfferNote} onChange={e=>setMyOfferNote(e.target.value)}
-                placeholder={`Deine Einschätzung zum Angebot (${currentUser})...`}
-                rows={2} style={{...inp,resize:'vertical' as const,lineHeight:'1.5'}}/>
+                placeholder={`Deine Einschätzung (${currentUser})...`} rows={2}
+                style={{...inp,resize:'vertical' as const,lineHeight:'1.5'}}/>
             </div>
           )}
-
           {offerTab!=='_kumuliert'&&offerTab!==currentUser&&(()=>{
             const rating=(form.user_offer_ratings||{})[offerTab]||0
             const note=(form.user_offer_notes||{})[offerTab]||''
-            return rating||note ? (
+            return rating||note?(
               <div>
                 {rating>0&&<div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
                   <div style={{padding:'6px 14px',borderRadius:8,background:RATING_SCALE[rating]?.bg||'#888',color:'#fff',fontSize:13,fontWeight:700}}>{rating}/5 · {RATING_SCALE[rating]?.label}</div>
@@ -841,7 +826,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack, currentUser }: {
                 </div>}
                 {note&&<div style={{padding:'8px 12px',background:'#f8f8f8',borderRadius:6,fontSize:12,color:'#444',fontStyle:'italic',lineHeight:1.5}}>"{note}"</div>}
               </div>
-            ) : <div style={{fontSize:11,color:'#aaa'}}>{offerTab} hat das Angebot noch nicht bewertet.</div>
+            ):<div style={{fontSize:11,color:'#aaa'}}>{offerTab} hat noch nicht bewertet.</div>
           })()}
         </div>
 
@@ -863,21 +848,21 @@ function EditView({ data, isNew, onSave, onDelete, onBack, currentUser }: {
         </div>
         <div style={{marginBottom:14}}>
           <label style={{display:'block',fontSize:11,color:'#888',marginBottom:4}}>Laufzeit</label>
-          <input type="text" value={form.offer_duration} onChange={e=>updateField('offer_duration',e.target.value)} placeholder="z. B. 12 Monate, ab Q1 2027 bis LA28" style={inp}/>
+          <input type="text" value={form.offer_duration} onChange={e=>updateField('offer_duration',e.target.value)} placeholder="z. B. 12 Monate bis LA28" style={inp}/>
         </div>
         <div style={{marginBottom:14}}>
           <label style={{display:'block',fontSize:11,color:'#888',marginBottom:4}}>Leistungen Citroen</label>
           <textarea value={form.offer_citroen_leistung} onChange={e=>updateField('offer_citroen_leistung',e.target.value)}
-            placeholder="z. B. 60.000 EUR/Jahr, Fahrzeugueberlassung..." rows={3} style={{...inp,resize:'vertical' as const,lineHeight:'1.5'}}/>
+            placeholder="z. B. 60.000 EUR/Jahr, Fahrzeug..." rows={3} style={{...inp,resize:'vertical' as const,lineHeight:'1.5'}}/>
         </div>
         <div>
           <label style={{display:'block',fontSize:11,color:'#888',marginBottom:4}}>Leistungen Athlet</label>
           <textarea value={form.offer_athlete_leistung} onChange={e=>updateField('offer_athlete_leistung',e.target.value)}
-            placeholder="z. B. 6 Social Posts/Jahr, 24 Stories/Jahr..." rows={4} style={{...inp,resize:'vertical' as const,lineHeight:'1.5'}}/>
+            placeholder="z. B. 6 Social Posts/Jahr, 24 Stories..." rows={4} style={{...inp,resize:'vertical' as const,lineHeight:'1.5'}}/>
         </div>
       </div>
 
-      {/* Social */}
+      {/* Social + Comments */}
       <div style={{marginBottom:20,padding:'14px 16px',background:'#f8f8f8',borderRadius:12,border:'1px solid #ececec'}}>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10,marginBottom:10}}>
           <div>
@@ -930,8 +915,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack, currentUser }: {
         <div style={{display:'flex',gap:6,flexWrap:'wrap' as const,marginBottom:8}}>
           <div onClick={()=>setScoringTab('_kumuliert')}
             style={{display:'flex',alignItems:'center',gap:4,padding:'5px 12px',borderRadius:20,fontSize:11,fontWeight:700,cursor:'pointer',transition:'all 0.15s',
-              background:scoringTab==='_kumuliert'?'#1a1a1a':'#fff',
-              color:scoringTab==='_kumuliert'?'#fff':'#555',
+              background:scoringTab==='_kumuliert'?'#1a1a1a':'#fff',color:scoringTab==='_kumuliert'?'#fff':'#555',
               border:`1.5px solid ${scoringTab==='_kumuliert'?'#1a1a1a':'#ddd'}`}}>
             ⌀ Kumuliert {numRatings>0&&<span style={{fontSize:9,opacity:0.8}}>({numRatings})</span>}
           </div>
@@ -942,24 +926,20 @@ function EditView({ data, isNew, onSave, onDelete, onBack, currentUser }: {
             return (
               <div key={acc.name} onClick={()=>setScoringTab(acc.name)}
                 style={{display:'flex',alignItems:'center',gap:3,padding:'5px 12px',borderRadius:20,fontSize:11,fontWeight:600,cursor:'pointer',transition:'all 0.15s',
-                  background:isActive?(isMe?RED:'#333'):'#fff',
-                  color:isActive?'#fff':(isMe?RED:'#666'),
+                  background:isActive?(isMe?RED:'#333'):'#fff',color:isActive?'#fff':(isMe?RED:'#666'),
                   border:`1.5px solid ${isActive?(isMe?RED:'#333'):(isMe?rgba(RED,0.3):'#ddd')}`}}>
-                <span>{acc.name}</span>
-                {isMe&&<span style={{fontSize:9,opacity:0.7}}>(ich)</span>}
-                {hasRated&&<span style={{fontSize:10,marginLeft:1}}>✓</span>}
+                <span>{acc.name}</span>{isMe&&<span style={{fontSize:9,opacity:0.7}}>(ich)</span>}{hasRated&&<span style={{fontSize:10,marginLeft:1}}>✓</span>}
               </div>
             )
           })}
         </div>
         <div style={{fontSize:11,color:'#888'}}>
-          {scoringTab==='_kumuliert'&&`Durchschnitt aller Bewertungen – schreibgeschuetzt${numRatings===0?' (noch keine)':` (${numRatings})`}`}
-          {scoringTab===currentUser&&!iHaveRated&&'Du hast noch keine eigene Bewertung. Passe die Werte an und speichere.'}
-          {scoringTab===currentUser&&iHaveRated&&'Deine gespeicherte Bewertung – du kannst sie anpassen.'}
+          {scoringTab==='_kumuliert'&&`Durchschnitt aller Bewertungen${numRatings===0?' (noch keine)':` (${numRatings})`}`}
+          {scoringTab===currentUser&&!iHaveRated&&'Noch keine eigene Bewertung.'}
+          {scoringTab===currentUser&&iHaveRated&&'Deine gespeicherte Bewertung.'}
           {scoringTab!=='_kumuliert'&&scoringTab!==currentUser&&(
             (form.user_scores?.[scoringTab]&&Object.keys(form.user_scores[scoringTab]).length>0)
-              ?`Bewertung von ${scoringTab} – schreibgeschuetzt`
-              :`${scoringTab} hat noch nicht bewertet`
+              ?`Bewertung von ${scoringTab} – schreibgeschuetzt`:`${scoringTab} hat noch nicht bewertet`
           )}
         </div>
       </div>
@@ -1017,8 +997,7 @@ function EditView({ data, isNew, onSave, onDelete, onBack, currentUser }: {
                     </div>
                     <input type="range" min="1" max="10" step="1" value={activeScores[cr.key]??5}
                       onChange={e=>updateScore(cr.key,Number(e.target.value))}
-                      disabled={!isEditable}
-                      style={{width:'100%',accentColor:c.color,opacity:isEditable?1:0.6}}/>
+                      disabled={!isEditable} style={{width:'100%',accentColor:c.color,opacity:isEditable?1:0.6}}/>
                   </>
                 )}
               </div>
